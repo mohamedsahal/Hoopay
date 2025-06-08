@@ -7,7 +7,7 @@ import Logo from '../assets/images/logo.svg';
 
 const { width, height } = Dimensions.get('window');
 
-const SplashScreen = ({ navigation }) => {
+const SplashScreen = () => {
   const logoRef = useRef(null);
   const textRef = useRef(null);
 
@@ -19,14 +19,7 @@ const SplashScreen = ({ navigation }) => {
     if (textRef.current) {
       textRef.current.fadeIn(1500);
     }
-
-    // Navigate to Onboarding screen after 3 seconds
-    const timer = setTimeout(() => {
-      navigation.replace('Onboarding');
-    }, 3000);
-
-    return () => clearTimeout(timer);
-  }, [navigation]);
+  }, []);
 
   return (
     <LinearGradient

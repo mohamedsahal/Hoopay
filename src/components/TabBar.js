@@ -1,22 +1,41 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from '../contexts/ThemeContext';
 import Colors from '../constants/Colors';
 
 const TabBar = ({ state, descriptors, navigation }) => {
   const insets = useSafeAreaInsets();
+  
+  // Use fallback colors if theme context is not available
+  let themeColors;
+  try {
+    const { colors } = useTheme();
+    themeColors = colors;
+  } catch (error) {
+    console.warn('ThemeContext not available, using default colors');
+    themeColors = Colors;
+  }
 
   return (
-    <View style={[styles.outerContainer, { paddingBottom: insets.bottom }]}>
+    <View style={[styles.outerContainer, { 
+      paddingBottom: insets.bottom,
+      backgroundColor: themeColors.primary 
+    }]}>
       <View style={styles.container}>
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
-          const label =
-            options.tabBarLabel !== undefined
+          // Force replacement of Referral with Community
+          let label;
+          if (route.name === 'Referral') {
+            label = 'Community';
+          } else {
+            label = options.tabBarLabel !== undefined
               ? options.tabBarLabel
               : options.title !== undefined
               ? options.title
               : route.name;
+          }
 
           const isFocused = state.index === index;
 
@@ -32,8 +51,8 @@ const TabBar = ({ state, descriptors, navigation }) => {
             }
           };
 
-          // Swap tab has a special styling, it's rendered through the SwapButton component
-          if (route.name === 'Swap') {
+          // Home tab has a special styling, it's rendered through the HomeButton component
+          if (route.name === 'Home') {
             return (
               <View key={index} style={styles.tabItem}>
                 {options.tabBarButton ? options.tabBarButton({ onPress }) : null}
@@ -90,7 +109,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: Colors.primary,
   },
   container: {
     flexDirection: 'row',

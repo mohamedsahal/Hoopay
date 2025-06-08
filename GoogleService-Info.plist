@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>121937300304-nlll4qmt1l34abep1gu334kpgf752a2i.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.121937300304-nlll4qmt1l34abep1gu334kpgf752a2i</string>
+	<key>ANDROID_CLIENT_ID</key>
+	<string>121937300304-eftse91tjhovgs3hldvo9bpn1u3iqa8h.apps.googleusercontent.com</string>
+	<key>API_KEY</key>
+	<string>AIzaSyDYwP8_u1C_3Blb0M7y0r70NWQGEEvbhGk</string>
+	<key>GCM_SENDER_ID</key>
+	<string>121937300304</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.exaliye.HoopayNew</string>
+	<key>PROJECT_ID</key>
+	<string>hoopay-ef6ae</string>
+	<key>STORAGE_BUCKET</key>
+	<string>hoopay-ef6ae.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:121937300304:ios:8968c23634564f23103a55</string>
+</dict>
+</plist>

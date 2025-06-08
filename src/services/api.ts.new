@@ -1,0 +1,90 @@
+import axios from 'axios';
+import * as SecureStore from 'expo-secure-store';
+
+// API URLs configuration - Production URL
+const API_URL = 'https://hoopaywallet.com';
+
+// Create axios instance
+const api = axios.create({
+  baseURL: API_URL,
+  timeout: 30000,
+  withCredentials: true,
+});
+
+// Request interceptor for API calls
+api.interceptors.request.use(
+  async (config) => {
+    const token = await SecureStore.getItemAsync('auth_token');
+    
+    // Create a new headers object
+    const headers = { ...config.headers };
+    
+    // Set headers for all requests
+    headers['Accept'] = 'application/json';
+    headers['Content-Type'] = 'application/json';
+    
+    // Add authorization header if token exists
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+      
+      // Log request for debugging
+      console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`, {
+        data: config.data,
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+    }
+    
+    // Apply the updated headers
+    config.headers = headers;
+    
+    return config;
+  },
+  (error) => {
+    console.error('API request error:', error);
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor for API calls
+api.interceptors.response.use(
+  (response) => {
+    // Log successful responses in development
+    if (__DEV__) {
+      console.log(`API Response: ${response.status}`, {
+        data: response.data,
+        config: {
+          url: response.config.url,
+          method: response.config.method?.toUpperCase()
+        }
+      });
+    }
+    return response;
+  },
+  async (error) => {
+    const originalRequest = error.config;
+    
+    // Log error responses in development
+    if (__DEV__) {
+      console.error(`API Error (${error.response?.status || 'Unknown'}):`, {
+        data: error.response?.data,
+        headers: originalRequest.headers,
+        method: originalRequest.method?.toUpperCase(),
+        url: originalRequest.url
+      });
+    }
+    
+    // Handle 401 responses (authentication errors)
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      // Token refresh could be implemented here if needed
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
+export default api;

@@ -1,0 +1,470 @@
+import React, { useRef } from 'react';
+import { View } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import * as SecureStore from 'expo-secure-store';
+import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { MaterialCommunityIcons, FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import Colors from './src/constants/Colors';
+import { AuthProvider, useAuth } from './src/contexts/AuthContext';
+import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
+import { setNavigator } from './src/services/navigationService';
+import LoadingIndicator from './src/components/LoadingIndicator';
+
+// Import screens
+import AccountScreen from './src/screens/AccountScreen';
+import TransactionsScreen from './src/screens/TransactionsScreen';
+import HomeScreen from './src/screens/HomeScreen';
+import CommunityScreen from './src/screens/CommunityScreen';
+import CommunityRedirectScreen from './src/screens/CommunityRedirectScreen';
+import ProfileScreen from './src/screens/ProfileScreen';
+import EditProfileScreen from './src/screens/EditProfileScreen';
+import SplashScreen from './src/screens/SplashScreen';
+import OnboardingScreen from './src/screens/OnboardingScreen';
+import LoginScreen from './src/screens/LoginScreen';
+import SignupScreen from './src/screens/SignupScreen';
+import EmailVerificationScreen from './src/screens/EmailVerificationScreen';
+
+// Import Transfer screen
+import TransferScreen from './src/screens/TransferScreen';
+
+// Import Withdraw screen
+import WithdrawScreen from './src/screens/WithdrawScreen';
+
+// Import Deposit screens
+import DepositStartScreen from './src/screens/Deposit/DepositStartScreen';
+import DepositInstructionsScreen from './src/screens/Deposit/DepositInstructionsScreen';
+import DepositVerificationScreen from './src/screens/Deposit/DepositVerificationScreen';
+import DepositCompleteScreen from './src/screens/Deposit/DepositCompleteScreen';
+
+// Import Two-Factor Authentication screens
+import TwoFactorChallengeScreen from './src/screens/Auth/TwoFactorChallengeScreen';
+import TwoFactorSetupScreen from './src/screens/TwoFactorSetupScreen';
+import TwoFactorManagementScreen from './src/screens/TwoFactorManagementScreen';
+
+// Import Change Password screen
+import ChangePasswordScreen from './src/screens/ChangePasswordScreen';
+
+// Import KYC Verification screen
+import UnifiedKycScreen from './src/screens/UnifiedKycScreen';
+
+// Import Referral screens
+import ReferralDashboardScreen from './src/screens/ReferralDashboardScreen';
+import ReferralOnboardingScreen from './src/screens/ReferralOnboardingScreen';
+import ReferralSharingScreen from './src/screens/ReferralSharingScreen';
+
+// Import Master Dashboard screen
+import MasterDashboardScreen from './src/screens/MasterDashboardScreen';
+
+// Import Discussion screens
+import PostDetailScreen from './src/screens/PostDetailScreen';
+import UserProfileScreen from './src/screens/UserProfileScreen';
+
+// Import Notification screens
+import NotificationsScreen from './src/screens/NotificationsScreen';
+
+// Import About screen
+import AboutScreen from './src/screens/AboutScreen';
+
+// Import Help Center screen
+import HelpCenterScreen from './src/screens/HelpCenterScreen';
+
+// Import custom components
+import TabBar from './src/components/TabBar';
+import HomeButton from './src/components/HomeButton';
+import CommunityButton from './src/components/CommunityButton';
+import NotificationToast from './src/components/NotificationToast';
+
+type TabParamList = {
+  Account: undefined;
+  Transactions: undefined;
+  Home: undefined;
+  Community: undefined;
+  Profile: undefined;
+};
+
+type CommunityStackParamList = {
+  CommunityHome: undefined;
+  PostDetail: { postId: number };
+  UserProfile: { userId: number };
+};
+
+type ProfileStackParamList = {
+  ProfileMain: undefined;
+  EditProfile: undefined;
+  TwoFactorManagement: undefined;
+  TwoFactorSetup: undefined;
+  TwoFactorChallenge: { email: string };
+  ChangePassword: undefined;
+  KycVerification: undefined;
+  ReferralDashboard: undefined;
+  ReferralOnboarding: undefined;
+  ReferralSharing: undefined;
+  MasterDashboard: undefined;
+  About: undefined;
+  HelpCenter: undefined;
+};
+
+type AuthStackParamList = {
+  Login: undefined;
+  Signup: undefined;
+  EmailVerification: undefined;
+  TwoFactorChallenge: { email: string };
+};
+
+type RootStackParamList = {
+  Onboarding: undefined;
+  Auth: undefined;
+  Main: undefined;
+  // Community - Separate Navigation System
+  CommunityStack: undefined;
+  // Transfer screen
+  Transfer: undefined;
+  // Withdraw screen
+  Withdraw: undefined;
+  // Notification screens
+  NotificationsScreen: undefined;
+  // Deposit screens
+  DepositStart: undefined;
+  DepositInstructions: undefined;
+  DepositVerification: undefined;
+  DepositComplete: undefined;
+};
+
+const Tab = createBottomTabNavigator<TabParamList>();
+const Stack = createNativeStackNavigator<RootStackParamList>();
+const CommunityStack = createNativeStackNavigator<CommunityStackParamList>();
+const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
+const AuthStack = createNativeStackNavigator<AuthStackParamList>();
+
+// Custom theme
+const MyTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    background: Colors.background,
+  },
+};
+
+// Icon rendering functions
+interface IconProps {
+  color: string;
+  size: number;
+}
+
+const renderAccountIcon = ({ color, size }: IconProps) => (
+  <MaterialIcons name="account-balance" size={size * 1.3} color={color} />
+);
+
+const renderTransactionsIcon = ({ color, size }: IconProps) => (
+  <MaterialIcons name="swap-horiz" size={size * 1.3} color={color} />
+);
+
+const renderCommunityIcon = ({ color, size }: IconProps) => (
+  <MaterialIcons name="groups" size={size * 1.3} color={color} />
+);
+
+const renderProfileIcon = ({ color, size }: IconProps) => (
+  <Ionicons name="person" size={size * 1.3} color={color} />
+);
+
+// Auth Navigator
+function AuthNavigator() {
+  return (
+    <AuthStack.Navigator 
+      screenOptions={{ 
+        headerShown: false,
+        gestureEnabled: false,
+        animation: 'slide_from_right'
+      }}
+      initialRouteName="Login"
+    >
+      <AuthStack.Screen name="Login" component={LoginScreen} />
+      <AuthStack.Screen name="Signup" component={SignupScreen} />
+      <AuthStack.Screen name="EmailVerification" component={EmailVerificationScreen} />
+      <AuthStack.Screen name="TwoFactorChallenge" component={TwoFactorChallengeScreen} />
+    </AuthStack.Navigator>
+  );
+}
+
+// Community Stack Navigator
+function CommunityNavigator() {
+  return (
+    <CommunityStack.Navigator 
+      screenOptions={{ 
+        headerShown: false,
+        animation: 'fade',
+        contentStyle: { backgroundColor: Colors.background }
+      }}
+    >
+      <CommunityStack.Screen 
+        name="CommunityHome" 
+        component={CommunityScreen}
+        options={{
+          contentStyle: { backgroundColor: Colors.background }
+        }}
+      />
+      <CommunityStack.Screen 
+        name="PostDetail" 
+        component={PostDetailScreen}
+        options={{
+          headerShown: true,
+          title: 'Post Details',
+          contentStyle: { backgroundColor: Colors.background }
+        }}
+      />
+      <CommunityStack.Screen 
+        name="UserProfile" 
+        component={UserProfileScreen}
+        options={{
+          headerShown: false,
+          contentStyle: { backgroundColor: Colors.background }
+        }}
+      />
+    </CommunityStack.Navigator>
+  );
+}
+
+// Profile Stack Navigator
+function ProfileNavigator() {
+  return (
+    <ProfileStack.Navigator
+      initialRouteName="ProfileMain"
+      screenOptions={{ headerShown: false }}
+    >
+      <ProfileStack.Screen name="ProfileMain" component={ProfileScreen} />
+      <ProfileStack.Screen name="EditProfile" component={EditProfileScreen} />
+      <ProfileStack.Screen name="TwoFactorManagement" component={TwoFactorManagementScreen} />
+      <ProfileStack.Screen name="TwoFactorSetup" component={TwoFactorSetupScreen} />
+      <ProfileStack.Screen name="TwoFactorChallenge" component={TwoFactorChallengeScreen} />
+      <ProfileStack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+              <ProfileStack.Screen name="KycVerification" component={UnifiedKycScreen} />
+      <ProfileStack.Screen name="ReferralDashboard" component={ReferralDashboardScreen} />
+      <ProfileStack.Screen name="ReferralOnboarding" component={ReferralOnboardingScreen} />
+      <ProfileStack.Screen name="ReferralSharing" component={ReferralSharingScreen} />
+      <ProfileStack.Screen name="MasterDashboard" component={MasterDashboardScreen} />
+      <ProfileStack.Screen name="About" component={AboutScreen} />
+      <ProfileStack.Screen name="HelpCenter" component={HelpCenterScreen} />
+    </ProfileStack.Navigator>
+  );
+}
+
+// Main Tab Navigator (4 tabs only - no Community)
+function MainApp() {
+  const handleNotificationPress = (notification: any) => {
+    // Handle notification press by navigating to relevant screen
+    console.log('Notification pressed:', notification);
+    // Add navigation logic here if needed
+  };
+
+  return (
+    <View style={{ flex: 1 }}>
+      <Tab.Navigator
+        initialRouteName="Home"
+        screenOptions={{
+          headerShown: false,
+          tabBarShowLabel: true,
+          tabBarStyle: {
+            height: 60,
+            backgroundColor: Colors.background,
+            borderTopWidth: 1,
+            borderTopColor: Colors.border,
+          },
+          tabBarActiveTintColor: Colors.primary,
+          tabBarInactiveTintColor: Colors.text,
+        }}
+        tabBar={props => <TabBar {...props} />}
+      >
+        <Tab.Screen 
+          name="Community" 
+          component={CommunityRedirectScreen} 
+          options={{ 
+            tabBarIcon: renderCommunityIcon,
+          }}
+        />
+        <Tab.Screen 
+          name="Account" 
+          component={AccountScreen} 
+          options={{ tabBarIcon: renderAccountIcon }}
+        />
+        <Tab.Screen 
+          name="Home" 
+          component={HomeScreen} 
+          options={{ tabBarButton: HomeButton }}
+        />
+        <Tab.Screen 
+          name="Transactions" 
+          component={TransactionsScreen} 
+          options={{ tabBarIcon: renderTransactionsIcon }}
+        />
+        <Tab.Screen 
+          name="Profile" 
+          component={ProfileNavigator} 
+          options={{ tabBarIcon: renderProfileIcon }}
+        />
+      </Tab.Navigator>
+      
+      {/* Global notification toast */}
+      <NotificationToast
+        onPress={handleNotificationPress}
+        onDismiss={() => console.log('Notification dismissed')}
+      />
+    </View>
+  );
+}
+
+// Root Stack Navigator with Auth Check
+function RootNavigator() {
+  const { isAuthenticated, isLoading, isFromLogout } = useAuth();
+  const { isLoading: themeLoading } = useTheme();
+  const [hasSeenOnboarding, setHasSeenOnboarding] = React.useState(false);
+  const [checkingOnboarding, setCheckingOnboarding] = React.useState(true);
+
+  // Check if user has seen onboarding before
+  React.useEffect(() => {
+    async function checkOnboardingStatus() {
+      try {
+        const onboardingComplete = await SecureStore.getItemAsync('onboardingComplete');
+        if (onboardingComplete === 'true') {
+          setHasSeenOnboarding(true);
+        }
+        console.log('Onboarding check:', { onboardingComplete, hasSeenOnboarding: onboardingComplete === 'true' });
+      } catch (error) {
+        console.error('Error checking onboarding status:', error);
+      } finally {
+        setCheckingOnboarding(false);
+      }
+    }
+    
+    checkOnboardingStatus();
+  }, []);
+
+  // Wait for both auth and theme to load, plus onboarding check
+  if (isLoading || themeLoading || checkingOnboarding) {
+    return <LoadingIndicator style={{}} color={Colors.primary} />;
+  }
+
+  console.log('Navigation state:', { isAuthenticated, isFromLogout, hasSeenOnboarding });
+
+  return (
+    <Stack.Navigator 
+      screenOptions={{ 
+        headerShown: false,
+        gestureEnabled: false,
+        animation: 'fade'
+      }}
+    >
+      {!isAuthenticated ? (
+        // If user logged out OR has seen onboarding before, go directly to Auth
+        isFromLogout || hasSeenOnboarding ? (
+          <Stack.Screen name="Auth" component={AuthNavigator} />
+        ) : (
+          // Only show onboarding for first-time users
+          <>
+            <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+            <Stack.Screen name="Auth" component={AuthNavigator} />
+          </>
+        )
+      ) : (
+        <>
+          <Stack.Screen name="Main" component={MainApp} />
+          
+          {/* Community - Separate Stack (No main nav) */}
+          <Stack.Screen 
+            name="CommunityStack" 
+            component={CommunityNavigator}
+            options={{
+              headerShown: false,
+              gestureEnabled: true,
+              animation: 'fade',
+              contentStyle: { backgroundColor: Colors.background }
+            }}
+          />
+
+          {/* Transfer Screen - Modal Presentation */}
+          <Stack.Screen 
+            name="Transfer" 
+            component={TransferScreen}
+            options={{
+              presentation: 'modal',
+              gestureEnabled: true,
+            }}
+          />
+          
+          {/* Withdraw Screen - Modal Presentation */}
+          <Stack.Screen 
+            name="Withdraw" 
+            component={WithdrawScreen}
+            options={{
+              presentation: 'modal',
+              gestureEnabled: true,
+            }}
+          />
+          
+          {/* Notification Screen */}
+          <Stack.Screen 
+            name="NotificationsScreen" 
+            component={NotificationsScreen}
+            options={{
+              gestureEnabled: true,
+            }}
+          />
+          
+          {/* Deposit Screens */}
+          <Stack.Screen name="DepositStart" component={DepositStartScreen} />
+          <Stack.Screen name="DepositInstructions" component={DepositInstructionsScreen} />
+          <Stack.Screen name="DepositVerification" component={DepositVerificationScreen} />
+          <Stack.Screen name="DepositComplete" component={DepositCompleteScreen} />
+        </>
+      )}
+    </Stack.Navigator>
+  );
+}
+
+// App Content Component that can access the theme context
+function AppContent() {
+  const navigationRef = useRef(null);
+  
+  // Use theme context with fallback
+  let isDarkMode;
+  try {
+    const theme = useTheme();
+    isDarkMode = theme.isDarkMode;
+  } catch (error) {
+    console.warn('ThemeContext not available in App, using auto');
+    isDarkMode = null; // Will use "auto" as fallback
+  }
+
+  return (
+    <NavigationContainer
+      ref={navigationRef}
+      theme={MyTheme}
+      onReady={() => {
+        if (navigationRef.current) {
+          setNavigator(navigationRef.current);
+        }
+      }}
+    >
+      <RootNavigator />
+      <StatusBar 
+        style={isDarkMode !== null ? (isDarkMode ? "light" : "dark") : "auto"} 
+        backgroundColor="transparent"
+        translucent={false}
+      />
+    </NavigationContainer>
+  );
+}
+
+export default function App() {
+  return (
+    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+      <AuthProvider>
+        <ThemeProvider>
+          <AppContent />
+        </ThemeProvider>
+      </AuthProvider>
+    </SafeAreaProvider>
+  );
+} 

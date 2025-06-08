@@ -7,6 +7,7 @@ import {
   FlatList,
   TouchableOpacity,
 } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
 import LottieView from 'lottie-react-native';
 import * as Animatable from 'react-native-animatable';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -27,7 +28,7 @@ const OnboardingScreen = ({ navigation }) => {
     },
     {
       id: '2',
-      title: 'Swap Money Instantly',
+      title: 'Deposit Money Instantly',
       subtitle: 'Exchange currencies with the best rates in seconds',
       animation: require('../assets/lottie/newtransection.json'),
     },
@@ -77,17 +78,21 @@ const OnboardingScreen = ({ navigation }) => {
     }
   };
 
-  const nextSlide = () => {
+  const nextSlide = async () => {
     const nextIndex = currentIndex + 1;
     if (nextIndex < onboardingData.length) {
       scrollTo(nextIndex);
     } else {
-      navigation.replace('Login');
+      // Mark onboarding as complete before navigating
+      await SecureStore.setItemAsync('onboardingComplete', 'true');
+      navigation.replace('Auth');
     }
   };
 
-  const skipToLogin = () => {
-    navigation.replace('Login');
+  const skipToLogin = async () => {
+    // Mark onboarding as complete before navigating
+    await SecureStore.setItemAsync('onboardingComplete', 'true');
+    navigation.replace('Auth');
   };
 
   return (
