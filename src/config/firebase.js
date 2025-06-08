@@ -11,13 +11,22 @@ const firebaseConfig = {
   appId: "1:121937300304:android:d89dedb7a263c386103a55"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// Safe Firebase initialization with error handling
+let app = null;
+let auth = null;
 
-// Initialize basic Auth (no Google OAuth)
-const auth = getAuth(app);
-
-console.log('🔥 Firebase initialized without Google Auth');
+try {
+  // Initialize Firebase
+  app = initializeApp(firebaseConfig);
+  
+  // Initialize basic Auth (no Google OAuth)
+  auth = getAuth(app);
+  
+  console.log('🔥 Firebase initialized successfully');
+} catch (error) {
+  console.error('❌ Firebase initialization failed:', error);
+  console.warn('🚨 App will continue without Firebase features');
+}
 
 export { auth };
 export default app; 

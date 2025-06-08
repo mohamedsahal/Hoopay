@@ -76,6 +76,7 @@ import TabBar from './src/components/TabBar';
 import HomeButton from './src/components/HomeButton';
 import CommunityButton from './src/components/CommunityButton';
 import NotificationToast from './src/components/NotificationToast';
+import ErrorBoundary from './src/components/ErrorBoundary';
 
 type TabParamList = {
   Account: undefined;
@@ -459,12 +460,14 @@ function AppContent() {
 
 export default function App() {
   return (
-    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-      <AuthProvider>
-        <ThemeProvider>
-          <AppContent />
-        </ThemeProvider>
-      </AuthProvider>
-    </SafeAreaProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+        <AuthProvider>
+          <ThemeProvider>
+            <AppContent />
+          </ThemeProvider>
+        </AuthProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 } 
