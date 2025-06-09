@@ -12,6 +12,7 @@ import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
 import { setNavigator } from './src/services/navigationService';
 import LoadingIndicator from './src/components/LoadingIndicator';
+import { TabParamList, RootStackParamList, CommunityStackParamList, ProfileStackParamList, AuthStackParamList } from './src/types/navigation';
 
 // Import screens
 import AccountScreen from './src/screens/AccountScreen';
@@ -78,62 +79,7 @@ import CommunityButton from './src/components/CommunityButton';
 import NotificationToast from './src/components/NotificationToast';
 import ErrorBoundary from './src/components/ErrorBoundary';
 
-type TabParamList = {
-  Account: undefined;
-  Transactions: undefined;
-  Home: undefined;
-  Community: undefined;
-  Profile: undefined;
-};
-
-type CommunityStackParamList = {
-  CommunityHome: undefined;
-  PostDetail: { postId: number };
-  UserProfile: { userId: number };
-};
-
-type ProfileStackParamList = {
-  ProfileMain: undefined;
-  EditProfile: undefined;
-  TwoFactorManagement: undefined;
-  TwoFactorSetup: undefined;
-  TwoFactorChallenge: { email: string };
-  ChangePassword: undefined;
-  KycVerification: undefined;
-  ReferralDashboard: undefined;
-  ReferralOnboarding: undefined;
-  ReferralSharing: undefined;
-  MasterDashboard: undefined;
-  About: undefined;
-  HelpCenter: undefined;
-};
-
-type AuthStackParamList = {
-  Login: undefined;
-  Signup: undefined;
-  EmailVerification: undefined;
-  TwoFactorChallenge: { email: string };
-};
-
-type RootStackParamList = {
-  Onboarding: undefined;
-  Auth: undefined;
-  Main: undefined;
-  // Community - Separate Navigation System
-  CommunityStack: undefined;
-  // Transfer screen
-  Transfer: undefined;
-  // Withdraw screen
-  Withdraw: undefined;
-  // Notification screens
-  NotificationsScreen: undefined;
-  // Deposit screens
-  DepositStart: undefined;
-  DepositInstructions: undefined;
-  DepositVerification: undefined;
-  DepositComplete: undefined;
-};
-
+// Create strongly typed navigators
 const Tab = createBottomTabNavigator<TabParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const CommunityStack = createNativeStackNavigator<CommunityStackParamList>();
@@ -149,12 +95,13 @@ const MyTheme = {
   },
 };
 
-// Icon rendering functions
+// Define icon props type
 interface IconProps {
   color: string;
   size: number;
 }
 
+// Icon rendering functions
 const renderAccountIcon = ({ color, size }: IconProps) => (
   <MaterialIcons name="account-balance" size={size * 1.3} color={color} />
 );

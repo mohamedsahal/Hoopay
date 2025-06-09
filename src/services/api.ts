@@ -1,4 +1,4 @@
-import axios, { AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
+import axios, { AxiosRequestConfig, AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { ENDPOINTS } from '../config/apiConfig';
@@ -32,7 +32,7 @@ declare const __DEV__: boolean;
 
 // Request interceptor for API calls
 api.interceptors.request.use(
-  async (config: any): Promise<any> => {
+  async (config: InternalAxiosRequestConfig): Promise<InternalAxiosRequestConfig> => {
     const token = await SecureStore.getItemAsync('auth_token');
     
     // Create a new headers object
@@ -86,7 +86,7 @@ api.interceptors.request.use(
     
     return config;
   },
-  (error: any) => {
+  (error: AxiosError) => {
     console.error('API request error:', error);
     return Promise.reject(error);
   }
@@ -94,7 +94,7 @@ api.interceptors.request.use(
 
 // Response interceptor for API calls
 api.interceptors.response.use(
-  (response: any) => {
+  (response: AxiosResponse) => {
     // Log successful responses in development
     if (__DEV__) {
       console.log(`API Response: ${response.status}`, {
@@ -107,8 +107,8 @@ api.interceptors.response.use(
     }
     return response;
   },
-  async (error: any) => {
-    const originalRequest = error.config;
+  async (error: AxiosError) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
     
     // Log error responses in development
     if (error.response) {

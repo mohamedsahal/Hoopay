@@ -1,30 +1,62 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
+export type TabParamList = {
+  Account: undefined;
+  Transactions: undefined;
+  Home: undefined;
+  Community: undefined;
+  Profile: undefined;
+};
+
+export type CommunityStackParamList = {
+  CommunityHome: undefined;
+  PostDetail: { postId: string };
+  UserProfile: { userId: string };
+};
+
+export type ProfileStackParamList = {
+  ProfileMain: undefined;
+  EditProfile: undefined;
+  TwoFactorManagement: undefined;
+  TwoFactorSetup: undefined;
+  TwoFactorChallenge: { email: string };
+  ChangePassword: undefined;
+  KycVerification: undefined;
+  ReferralDashboard: undefined;
+  ReferralOnboarding: undefined;
+  ReferralSharing: undefined;
+  MasterDashboard: undefined;
+  About: undefined;
+  HelpCenter: undefined;
+};
+
+export type AuthStackParamList = {
+  Login: undefined;
+  Signup: undefined;
+  EmailVerification: undefined;
+  TwoFactorChallenge: { email: string };
+};
+
 export type RootStackParamList = {
   Onboarding: undefined;
   Auth: undefined;
-  Main: { screen?: string } | undefined;
-  // Community - Separate Navigation System
+  Main: undefined;
   CommunityStack: undefined;
-  // Transfer screen
   Transfer: undefined;
-  // Withdraw screen
   Withdraw: undefined;
-  // Notification screens
   NotificationsScreen: undefined;
-  // Master Dashboard screen
-  MasterDashboard: undefined;
-  // Referral screens
-  ReferralDashboard: undefined;
-  ReferralOnboarding: undefined;
-  // KYC screens
-  KycVerification: undefined;
-  PersonalInfo: undefined;
-  // Deposit screens
   DepositStart: undefined;
   DepositInstructions: undefined;
   DepositVerification: undefined;
   DepositComplete: undefined;
+  // Community - Separate Navigation System
+  // Transfer screen
+  // Withdraw screen
+  // Notification screens
+  // Master Dashboard screen
+  // Referral screens
+  // KYC screens
+  // Deposit screens
   // Legacy types for backwards compatibility
   Login: undefined;
   Register: undefined;

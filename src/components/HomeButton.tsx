@@ -1,16 +1,12 @@
 import React, { useEffect, useRef } from 'react';
-import { View, TouchableOpacity, StyleSheet, Animated, Easing, GestureResponderEvent } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Animated, Easing, GestureResponderEvent, TouchableOpacityProps } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
 import Colors from '../constants/Colors';
 
 // Custom Tab Button for the centered Home tab
-const HomeButton: React.FC<BottomTabBarButtonProps> = ({
-  children,
-  onPress,
-  ...props
-}) => {
+const HomeButton = ({ onPress, ...props }: BottomTabBarButtonProps) => {
   // Create multiple animations for a more professional look
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
@@ -115,10 +111,10 @@ const HomeButton: React.FC<BottomTabBarButtonProps> = ({
     <View style={styles.wrapper}>
       <Animated.View style={buttonStyle}>
         <TouchableOpacity
-          activeOpacity={0.9}
+          activeOpacity={0.7}
           style={styles.touchable}
           onPress={handlePress}
-          {...props}
+          {...(props as TouchableOpacityProps)}
         >
           <View style={styles.gradient}>
             <LinearGradient
@@ -202,4 +198,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default HomeButton;
+export default HomeButton as (props: BottomTabBarButtonProps) => React.ReactNode;
