@@ -8,7 +8,6 @@ import {
   Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Animatable from 'react-native-animatable';
 
 const { width, height } = Dimensions.get('window');
 
@@ -24,36 +23,25 @@ const SplashScreen = () => {
         colors={['#4CAF50', '#45a049', '#388e3c']}
         style={styles.container}
       >
-        <Animatable.View
-          animation="bounceIn"
-          duration={1500}
-          style={styles.logoContainer}
-        >
-          <Image
-            source={require('../../assets/ic_launcher.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-        </Animatable.View>
+        {/* Small Logo Section */}
+        <View style={styles.logoSection}>
+          <View style={styles.smallLogoContainer}>
+            <Text style={styles.textLogo}>H</Text>
+          </View>
+        </View>
         
-        <Animatable.View
-          animation="fadeInUp"
-          delay={800}
-          style={styles.textContainer}
-        >
+        {/* App Text Section */}
+        <View style={styles.textSection}>
           <Text style={styles.appName}>Hoopay</Text>
           <Text style={styles.tagline}>Your Digital Wallet</Text>
-        </Animatable.View>
+        </View>
 
-        <Animatable.View
-          animation="pulse"
-          iterationCount="infinite"
-          style={styles.loadingIndicator}
-        >
-          <View style={styles.loadingDot} />
-          <View style={[styles.loadingDot, { marginLeft: 10 }]} />
-          <View style={[styles.loadingDot, { marginLeft: 10 }]} />
-        </Animatable.View>
+        {/* Loading Dots */}
+        <View style={styles.loadingSection}>
+          <View style={styles.dot} />
+          <View style={styles.dot} />
+          <View style={styles.dot} />
+        </View>
       </LinearGradient>
     </>
   );
@@ -62,53 +50,64 @@ const SplashScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    width: '100%',
-    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 20,
   },
-  logoContainer: {
+  logoSection: {
     alignItems: 'center',
+    marginBottom: 30,
+  },
+  smallLogoContainer: {
+    width: 60,
+    height: 60,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 30,
     justifyContent: 'center',
-    marginBottom: 40,
-  },
-  logo: {
-    width: 120,
-    height: 120,
-  },
-  textContainer: {
     alignItems: 'center',
-    marginBottom: 60,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  textLogo: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#fff',
+    textAlign: 'center',
+  },
+  textSection: {
+    alignItems: 'center',
+    marginBottom: 50,
   },
   appName: {
-    fontSize: 36,
+    fontSize: 32,
     fontWeight: 'bold',
     color: '#fff',
     textAlign: 'center',
     marginBottom: 8,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   tagline: {
-    fontSize: 18,
+    fontSize: 16,
     color: '#fff',
     textAlign: 'center',
     opacity: 0.9,
     fontWeight: '300',
   },
-  loadingIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  loadingSection: {
     position: 'absolute',
     bottom: 80,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  loadingDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: '#fff',
     opacity: 0.7,
+    marginHorizontal: 4,
   },
 });
 
