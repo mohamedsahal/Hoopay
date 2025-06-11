@@ -6,6 +6,7 @@ import {
   Dimensions,
   ScrollView,
   TouchableOpacity,
+  StatusBar,
 } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import LottieView from 'lottie-react-native';
@@ -115,11 +116,17 @@ const OnboardingScreen = ({ navigation }) => {
   };
 
   return (
-    <LinearGradient
-      colors={[Colors.gradientStart, Colors.gradientEnd]}
-      style={styles.container}
-    >
-      <View style={styles.header}>
+    <>
+      <StatusBar 
+        backgroundColor={Colors.gradientStart} 
+        barStyle="light-content" 
+        hidden={true}
+      />
+      <LinearGradient
+        colors={[Colors.gradientStart, Colors.gradientEnd]}
+        style={styles.container}
+      >
+        <View style={styles.header}>
         {currentIndex < onboardingData.length - 1 && (
           <TouchableOpacity 
             style={styles.skipButton} 
@@ -173,18 +180,25 @@ const OnboardingScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
     </LinearGradient>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    width: '100%',
+    height: '100%',
   },
   header: {
-    paddingTop: 50,
+    paddingTop: 20,
     paddingHorizontal: 20,
     alignItems: 'flex-end',
-    minHeight: 60,
+    minHeight: 50,
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    zIndex: 1,
   },
   skipButton: {
     padding: 10,
@@ -204,9 +218,10 @@ const styles = StyleSheet.create({
   },
   slide: {
     width,
+    height,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 50,
+    paddingTop: 0,
   },
   animationContainer: {
     width: width * 0.7,
@@ -238,8 +253,10 @@ const styles = StyleSheet.create({
     lineHeight: 26,
   },
   footer: {
-    marginTop: 'auto',
-    marginBottom: 50,
+    position: 'absolute',
+    bottom: 50,
+    left: 0,
+    right: 0,
     paddingHorizontal: 20,
   },
   paginationContainer: {

@@ -5,16 +5,16 @@
     "owner": "exaliye",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/favicon.png",
+    "icon": "./assets/ic_launcher.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": false,
     "scheme": "hoopay",
     "platforms": ["ios", "android", "web"],
     "sdkVersion": "51.0.0",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/ic_launcher.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#4CAF50"
     },
     "ios": {
       "supportsTablet": true,
@@ -24,8 +24,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/favicon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/ic_launcher.png",
+        "backgroundColor": "#4CAF50"
       },
       "package": "com.exaliye.HoopayNew",
       "googleServicesFile": "./google-services.json",
@@ -44,7 +44,7 @@
       ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/ic_launcher.png"
     },
     "plugins": [
       "expo-local-authentication",
