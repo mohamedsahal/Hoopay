@@ -44,10 +44,14 @@ const EmailVerificationScreen = ({ navigation, route }) => {
       // Fallback to stored email
       getStoredEmail();
     }
-    
-    // Check if email verification is available on server
-    checkVerificationAvailability();
   }, []);
+  
+  // Check verification availability when email is set
+  useEffect(() => {
+    if (email) {
+      checkVerificationAvailability();
+    }
+  }, [email]);
 
   useEffect(() => {
     let timer;
@@ -70,11 +74,16 @@ const EmailVerificationScreen = ({ navigation, route }) => {
 
   const checkVerificationAvailability = async () => {
     try {
-      // Test with a real email if available, otherwise use a test email
-      const testEmail = email || 'test@example.com';
+      // Only check availability if we have a real email from registration
+      if (!email) {
+        console.log('📍 No email available yet - skipping verification status check');
+        setVerificationAvailable(true);
+        setIsCheckingAvailability(false);
+        return;
+      }
       
-      // Try to check verification status - if this works, endpoints are available
-      await authService.checkVerificationStatus(testEmail);
+      // Try to check verification status with the actual user's email
+      await authService.checkVerificationStatus(email);
       
       // If we get here without throwing, the endpoints are working
       setVerificationAvailable(true);

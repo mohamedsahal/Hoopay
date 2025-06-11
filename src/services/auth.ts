@@ -503,6 +503,11 @@ class AuthService {
 
   async checkVerificationStatus(email: string): Promise<{ success: boolean; data: any }> {
     try {
+      // Validate that we have a real email, not a test email
+      if (!email || email.includes('test@example.com')) {
+        throw new Error('Invalid email provided for verification status check');
+      }
+      
       // Since apiConfig doesn't have VERIFICATION_STATUS explicitly defined, construct the URL
       const { data: response } = await api.get<ApiResponse>(`/auth/verification-status?email=${encodeURIComponent(email)}`);
       

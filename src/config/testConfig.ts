@@ -1,7 +1,7 @@
 export const TEST_CONFIG = {
-  // Test user credentials
+  // Test user credentials - removed test email to prevent 404 errors
   user: {
-    email: 'test@example.com',
+    email: '', // Use actual user emails instead of test emails
     password: 'password123'
   },
   

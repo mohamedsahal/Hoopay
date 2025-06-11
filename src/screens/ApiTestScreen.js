@@ -15,7 +15,7 @@ import { runAllTests, apiTests } from '../utils/apiTest';
 const ApiTestScreen = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [testResults, setTestResults] = useState([]);
-  const [testEmail, setTestEmail] = useState('test@example.com');
+  const [testEmail, setTestEmail] = useState(''); // Remove default test email
   const [testPassword, setTestPassword] = useState('testPassword123');
   const [summary, setSummary] = useState(null);
 

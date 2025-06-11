@@ -8,7 +8,7 @@ const BASE_URL = 'https://hoopaywallet.com/api/v1';
 // Test configuration
 const testConfig = {
   // You'll need to provide valid credentials for testing
-  testEmail: 'test@example.com',
+  testEmail: '', // Remove default test email to prevent 404 errors
   testPassword: 'testPassword123',
   authToken: null,
 };
