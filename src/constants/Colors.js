@@ -5,6 +5,7 @@ const lightTheme = {
   primaryDisabled: '#B0BEC5',  // Disabled state color
   secondary: '#4A90E2',        // Blue color for accent
   background: '#FFFFFF',       // White background
+  white: '#FFFFFF',            // Pure white color
   surface: '#F9F9F9',          // Light gray for cards/surfaces
   cardBackground: '#FFFFFF',   // Card background color
   text: '#333333',             // Dark gray for text
@@ -40,6 +41,7 @@ const darkTheme = {
   primaryDisabled: '#616161',  // Disabled state color for dark mode
   secondary: '#64B5F6',        // Lighter blue for dark mode
   background: '#121212',       // Dark background
+  white: '#FFFFFF',            // Pure white color
   surface: '#1E1E1E',          // Dark gray for cards/surfaces
   cardBackground: '#2C2C2C',   // Card background color
   text: '#FFFFFF',             // White text for dark mode

@@ -4,7 +4,7 @@ import {
   Text,
   StyleSheet,
   Dimensions,
-  FlatList,
+  ScrollView,
   TouchableOpacity,
 } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
@@ -17,7 +17,7 @@ const { width, height } = Dimensions.get('window');
 
 const OnboardingScreen = ({ navigation }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const slidesRef = useRef(null);
+  const scrollViewRef = useRef(null);
   
   const onboardingData = [
     {
@@ -40,16 +40,66 @@ const OnboardingScreen = ({ navigation }) => {
     },
   ];
 
-  const renderItem = ({ item }) => {
+  const scrollToIndex = (index) => {
+    if (scrollViewRef.current) {
+      scrollViewRef.current.scrollTo({
+        x: index * width,
+        animated: true,
+      });
+      setCurrentIndex(index);
+    }
+  };
+
+  const handleScroll = (event) => {
+    const scrollPosition = event.nativeEvent.contentOffset.x;
+    const index = Math.round(scrollPosition / width);
+    if (index !== currentIndex && index >= 0 && index < onboardingData.length) {
+      setCurrentIndex(index);
+    }
+  };
+
+  const nextSlide = async () => {
+    try {
+      const nextIndex = currentIndex + 1;
+      if (nextIndex < onboardingData.length) {
+        scrollToIndex(nextIndex);
+      } else {
+        // Mark onboarding as complete before navigating
+        await SecureStore.setItemAsync('onboardingComplete', 'true');
+        navigation.replace('Auth');
+      }
+    } catch (error) {
+      console.error('Error in nextSlide:', error);
+      // Fallback navigation in case of error
+      navigation.replace('Auth');
+    }
+  };
+
+  const skipToLogin = async () => {
+    try {
+      // Mark onboarding as complete before navigating
+      await SecureStore.setItemAsync('onboardingComplete', 'true');
+      navigation.replace('Auth');
+    } catch (error) {
+      console.error('Error in skipToLogin:', error);
+      // Fallback navigation
+      navigation.replace('Auth');
+    }
+  };
+
+  const renderSlide = (item, index) => {
     return (
-      <View style={styles.slide}>
+      <View key={item.id} style={styles.slide}>
         <View style={styles.animationContainer}>
           <LottieView
             source={item.animation}
             style={styles.lottieAnimation}
-            autoPlay
+            autoPlay={index === currentIndex}
             loop
-            onError={() => console.log('Animation failed to load')}
+            resizeMode="contain"
+            onError={(error) => {
+              console.log('Animation failed to load:', error);
+            }}
           />
         </View>
         <Animatable.View
@@ -64,37 +114,6 @@ const OnboardingScreen = ({ navigation }) => {
     );
   };
 
-  const viewableItemsChanged = useRef(({ viewableItems }) => {
-    if (viewableItems.length > 0) {
-      setCurrentIndex(viewableItems[0].index);
-    }
-  }).current;
-
-  const viewConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
-  
-  const scrollTo = (index) => {
-    if (slidesRef.current) {
-      slidesRef.current.scrollToIndex({ index });
-    }
-  };
-
-  const nextSlide = async () => {
-    const nextIndex = currentIndex + 1;
-    if (nextIndex < onboardingData.length) {
-      scrollTo(nextIndex);
-    } else {
-      // Mark onboarding as complete before navigating
-      await SecureStore.setItemAsync('onboardingComplete', 'true');
-      navigation.replace('Auth');
-    }
-  };
-
-  const skipToLogin = async () => {
-    // Mark onboarding as complete before navigating
-    await SecureStore.setItemAsync('onboardingComplete', 'true');
-    navigation.replace('Auth');
-  };
-
   return (
     <LinearGradient
       colors={[Colors.gradientStart, Colors.gradientEnd]}
@@ -102,30 +121,34 @@ const OnboardingScreen = ({ navigation }) => {
     >
       <View style={styles.header}>
         {currentIndex < onboardingData.length - 1 && (
-          <TouchableOpacity style={styles.skipButton} onPress={skipToLogin}>
+          <TouchableOpacity 
+            style={styles.skipButton} 
+            onPress={skipToLogin}
+            activeOpacity={0.7}
+          >
             <Text style={styles.skipButtonText}>Skip</Text>
           </TouchableOpacity>
         )}
       </View>
 
-      <FlatList
-        data={onboardingData}
-        renderItem={renderItem}
+      <ScrollView
+        ref={scrollViewRef}
         horizontal
-        showsHorizontalScrollIndicator={false}
         pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onMomentumScrollEnd={handleScroll}
+        scrollEventThrottle={16}
         bounces={false}
-        keyExtractor={(item) => item.id}
-        onViewableItemsChanged={viewableItemsChanged}
-        viewabilityConfig={viewConfig}
-        ref={slidesRef}
-        scrollEnabled={true}
-      />
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {onboardingData.map((item, index) => renderSlide(item, index))}
+      </ScrollView>
 
       <View style={styles.footer}>
         <View style={styles.paginationContainer}>
           {onboardingData.map((_, index) => (
-            <View
+            <TouchableOpacity
               key={index}
               style={[
                 styles.paginationDot,
@@ -133,11 +156,17 @@ const OnboardingScreen = ({ navigation }) => {
                   ? styles.paginationDotActive
                   : styles.paginationDotInactive,
               ]}
+              onPress={() => scrollToIndex(index)}
+              activeOpacity={0.7}
             />
           ))}
         </View>
 
-        <TouchableOpacity style={styles.button} onPress={nextSlide}>
+        <TouchableOpacity 
+          style={styles.button} 
+          onPress={nextSlide}
+          activeOpacity={0.8}
+        >
           <Text style={styles.buttonText}>
             {currentIndex === onboardingData.length - 1 ? 'Get Started' : 'Next'}
           </Text>
@@ -155,15 +184,23 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingHorizontal: 20,
     alignItems: 'flex-end',
+    minHeight: 60,
   },
   skipButton: {
     padding: 10,
+    borderRadius: 20,
   },
   skipButtonText: {
     color: Colors.background,
     fontSize: 16,
     fontWeight: '600',
     opacity: 0.8,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    // This ensures the ScrollView content takes the full height
   },
   slide: {
     width,
@@ -244,4 +281,50 @@ const styles = StyleSheet.create({
   },
 });
 
-export default OnboardingScreen; 
+// Fallback component in case of crashes
+const OnboardingFallback = ({ navigation }) => {
+  const handleContinue = async () => {
+    try {
+      await SecureStore.setItemAsync('onboardingComplete', 'true');
+      navigation.replace('Auth');
+    } catch (error) {
+      console.error('Error in fallback continue:', error);
+      navigation.replace('Auth');
+    }
+  };
+
+  return (
+    <LinearGradient
+      colors={[Colors.gradientStart, Colors.gradientEnd]}
+      style={styles.container}
+    >
+      <View style={[styles.slide, { paddingHorizontal: 30 }]}>
+        <View style={styles.textContainer}>
+          <Text style={styles.title}>Welcome to Hoopay</Text>
+          <Text style={styles.subtitle}>
+            Your secure digital wallet solution. Let's get started!
+          </Text>
+        </View>
+        <TouchableOpacity 
+          style={[styles.button, { marginTop: 40 }]} 
+          onPress={handleContinue}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.buttonText}>Get Started</Text>
+        </TouchableOpacity>
+      </View>
+    </LinearGradient>
+  );
+};
+
+// Enhanced OnboardingScreen with error boundary
+const EnhancedOnboardingScreen = (props) => {
+  try {
+    return <OnboardingScreen {...props} />;
+  } catch (error) {
+    console.error('OnboardingScreen crashed, using fallback:', error);
+    return <OnboardingFallback {...props} />;
+  }
+};
+
+export default EnhancedOnboardingScreen; 

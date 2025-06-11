@@ -1,4 +1,14 @@
 import React, { useRef } from 'react';
+
+// Initialize React Native compatibility polyfill after React is imported
+const { initializeReactNativePolyfill } = require('./src/utils/reactNativePolyfill');
+
+// Initialize polyfill early but after React import
+if (typeof global !== 'undefined') {
+  // Ensure React is available globally for polyfill
+  global.React = React;
+  initializeReactNativePolyfill();
+}
 import { View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as SecureStore from 'expo-secure-store';
@@ -202,9 +212,13 @@ function ProfileNavigator() {
 // Main Tab Navigator (4 tabs only - no Community)
 function MainApp() {
   const handleNotificationPress = (notification: any) => {
-    // Handle notification press by navigating to relevant screen
-    console.log('Notification pressed:', notification);
-    // Add navigation logic here if needed
+    try {
+      // Handle notification press by navigating to relevant screen
+      console.log('Notification pressed:', notification);
+      // Add navigation logic here if needed
+    } catch (error) {
+      console.error('Error handling notification press:', error);
+    }
   };
 
   return (
@@ -257,7 +271,13 @@ function MainApp() {
       {/* Global notification toast */}
       <NotificationToast
         onPress={handleNotificationPress}
-        onDismiss={() => console.log('Notification dismissed')}
+        onDismiss={() => {
+          try {
+            console.log('Notification dismissed');
+          } catch (error) {
+            console.error('Error dismissing notification:', error);
+          }
+        }}
       />
     </View>
   );
@@ -281,6 +301,8 @@ function RootNavigator() {
         console.log('Onboarding check:', { onboardingComplete, hasSeenOnboarding: onboardingComplete === 'true' });
       } catch (error) {
         console.error('Error checking onboarding status:', error);
+        // Don't crash the app if SecureStore fails - assume first time user
+        setHasSeenOnboarding(false);
       } finally {
         setCheckingOnboarding(false);
       }
@@ -374,26 +396,46 @@ function RootNavigator() {
 // App Content Component that can access the theme context
 function AppContent() {
   const navigationRef = useRef(null);
+  const [navigationReady, setNavigationReady] = React.useState(false);
   
   // Use theme context with fallback
-  let isDarkMode;
+  let isDarkMode = null;
   try {
     const theme = useTheme();
-    isDarkMode = theme.isDarkMode;
+    isDarkMode = theme?.isDarkMode ?? null;
   } catch (error) {
-    console.warn('ThemeContext not available in App, using auto');
+    console.warn('ThemeContext not available in App, using auto:', error);
     isDarkMode = null; // Will use "auto" as fallback
   }
+
+  const handleNavigationReady = React.useCallback(() => {
+    try {
+      if (navigationRef.current) {
+        setNavigator(navigationRef.current);
+        setNavigationReady(true);
+        console.log('Navigation is ready');
+      }
+    } catch (error) {
+      console.error('Error setting navigator:', error);
+      setNavigationReady(true); // Still allow app to continue
+    }
+  }, []);
+
+  const handleStateChange = React.useCallback((state: any) => {
+    try {
+      console.log('Navigation state changed:', state?.routeNames || 'unknown');
+    } catch (error) {
+      console.error('Error logging navigation state:', error);
+    }
+  }, []);
 
   return (
     <NavigationContainer
       ref={navigationRef}
       theme={MyTheme}
-      onReady={() => {
-        if (navigationRef.current) {
-          setNavigator(navigationRef.current);
-        }
-      }}
+      onReady={handleNavigationReady}
+      onStateChange={handleStateChange}
+      fallback={<LoadingIndicator style={{}} color={Colors.primary} />}
     >
       <RootNavigator />
       <StatusBar 

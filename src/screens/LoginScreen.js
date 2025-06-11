@@ -19,10 +19,26 @@ import * as Animatable from 'react-native-animatable';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../contexts/ThemeContext';
 import { Svg, Path } from 'react-native-svg';
-import ColorLogo from '../assets/images/color-logo.svg';
 import { authService } from '../services/auth';
-import BiometricButton from '../components/BiometricButton';
 import { useAuth } from '../contexts/AuthContext';
+
+// Safe import for ColorLogo
+let ColorLogo;
+try {
+  ColorLogo = require('../assets/images/color-logo.svg').default;
+} catch (error) {
+  console.warn('ColorLogo import failed:', error);
+  ColorLogo = null;
+}
+
+// Safe import for BiometricButton
+let BiometricButton;
+try {
+  BiometricButton = require('../components/BiometricButton').default;
+} catch (error) {
+  console.warn('BiometricButton import failed:', error);
+  BiometricButton = null;
+}
 
 const { width, height } = Dimensions.get('window');
 
@@ -199,136 +215,148 @@ const LoginScreen = ({ navigation }) => {
   const formRef = useRef(null);
 
   const handleBiometricError = (result) => {
-    console.log('Biometric login error:', result.error);
-    
-    if (!result.fallbackToPassword) {
-      Alert.alert(
-        'Authentication Failed',
-        result.error || 'Biometric authentication failed. Please try again.',
-        [{ text: 'OK' }]
-      );
-    }
-  };
-
-  const handleBiometricFallback = (result) => {
-    console.log('User chose password fallback:', result.error);
-  };
-
-  const handleForgotPassword = () => {
-    if (!formState.email.trim()) {
-      Alert.alert('Email Required', 'Please enter your email address first.');
-      return;
-    }
-
+    console.log('Biometric authentication error:', result);
     Alert.alert(
-      'Reset Password',
-      `Send password reset instructions to ${formState.email}?`,
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Send',
-          onPress: async () => {
-            try {
-              await authService.forgotPassword(formState.email);
-              Alert.alert(
-                'Email Sent',
-                'Password reset instructions have been sent to your email.'
-              );
-            } catch (error) {
-              Alert.alert(
-                'Error',
-                error.message || 'Failed to send reset email. Please try again.'
-              );
-            }
-          },
-        },
-      ]
+      'Authentication Failed', 
+      result.error || 'Biometric authentication was cancelled or failed.',
+      [{ text: 'OK' }]
     );
   };
 
+  const handleBiometricFallback = (result) => {
+    console.log('Biometric fallback to password:', result);
+  };
 
+  const handleForgotPassword = () => {
+    Alert.alert(
+      'Reset Password',
+      'Password reset functionality will be implemented soon.',
+      [{ text: 'OK' }]
+    );
+  };
 
   const navigateToSignup = () => {
-    navigation.navigate('Signup');
+    try {
+      navigation.navigate('Signup');
+    } catch (error) {
+      console.error('Navigation error:', error);
+    }
+  };
+
+  // Safe rendering function for ColorLogo
+  const renderLogo = () => {
+    if (ColorLogo && typeof ColorLogo !== 'number') {
+      try {
+        return <ColorLogo width={width * 0.7} height={60} />;
+      } catch (error) {
+        console.warn('ColorLogo render error:', error);
+        return (
+          <View style={getStyles(colors).logoFallback}>
+            <Text style={getStyles(colors).logoText}>Hoopay</Text>
+          </View>
+        );
+      }
+    }
+    return (
+      <View style={getStyles(colors).logoFallback}>
+        <Text style={getStyles(colors).logoText}>Hoopay</Text>
+      </View>
+    );
+  };
+
+  // Safe rendering function for BiometricButton
+  const renderBiometricButton = () => {
+    if (BiometricButton && typeof BiometricButton !== 'number') {
+      try {
+        return (
+          <BiometricButton
+            onSuccess={handleBiometricSuccess}
+            onError={handleBiometricError}
+            onFallback={handleBiometricFallback}
+            size="medium"
+            showLabel={true}
+            disabled={formState.isLoading}
+          />
+        );
+      } catch (error) {
+        console.warn('BiometricButton render error:', error);
+        return null;
+      }
+    }
+    return null;
   };
 
   return (
     <SafeAreaView style={getStyles(colors).container}>
       <StatusBar 
         style={isDarkMode ? "light" : "dark"} 
-        backgroundColor={colors.background}
+        backgroundColor="transparent"
         translucent={false}
       />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      
+      <KeyboardAvoidingView 
         style={getStyles(colors).container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-                  <View style={getStyles(colors).content}>
-            <View style={getStyles(colors).header}>
-              <Animatable.View 
-                animation="fadeIn" 
-                duration={1000} 
-                style={getStyles(colors).logoContainer}
-              >
-                <ColorLogo width={width * 0.7} height={60} />
-              </Animatable.View>
+        <View style={getStyles(colors).content}>
+          <View style={getStyles(colors).header}>
+            <Animatable.View 
+              animation="fadeIn" 
+              duration={1000} 
+              style={getStyles(colors).logoContainer}
+            >
+              {renderLogo()}
+            </Animatable.View>
 
-              <Animatable.Text
-                animation="fadeIn"
-                duration={1000}
-                style={getStyles(colors).headerTitle}
-              >
-                Welcome Back
-              </Animatable.Text>
+            <Animatable.Text
+              animation="fadeIn"
+              duration={1000}
+              style={getStyles(colors).headerTitle}
+            >
+              Welcome Back
+            </Animatable.Text>
+          </View>
+
+          <Animatable.View
+            animation="fadeInUp"
+            duration={800}
+            delay={300}
+            style={getStyles(colors).formContainer}
+          >
+            <View style={getStyles(colors).biometricSection}>
+              {renderBiometricButton()}
             </View>
 
-            <Animatable.View
-              animation="fadeInUp"
-              duration={800}
-              delay={300}
-              style={getStyles(colors).formContainer}
-            >
-              <View style={getStyles(colors).biometricSection}>
-                <BiometricButton
-                  onSuccess={handleBiometricSuccess}
-                  onError={handleBiometricError}
-                  onFallback={handleBiometricFallback}
-                  size="medium"
-                  showLabel={true}
-                  disabled={formState.isLoading}
-                />
-              </View>
-
+            {BiometricButton && (
               <View style={getStyles(colors).separator}>
                 <View style={getStyles(colors).separatorLine} />
                 <Text style={getStyles(colors).separatorText}>OR</Text>
                 <View style={getStyles(colors).separatorLine} />
               </View>
+            )}
 
-              <View style={getStyles(colors).inputContainer}>
-                <Svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={getStyles(colors).inputIcon}>
-                  <Path
-                    d="M22 6C22 4.9 21.1 4 20 4H4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6ZM20 6L12 11L4 6H20ZM20 18H4V8L12 13L20 8V18Z"
-                    fill={colors.textSecondary}
-                  />
-                </Svg>
-                <TextInput
-                  style={[getStyles(colors).input, formState.errors.email && getStyles(colors).inputError]}
-                  placeholder="Email"
-                  placeholderTextColor={colors.textSecondary}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  value={formState.email}
-                  onChangeText={(text) => {
-                    updateFormState({ email: text });
-                    updateFormState({ errors: { ...formState.errors, email: null } });
-                  }}
+            <View style={getStyles(colors).inputContainer}>
+              <Svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={getStyles(colors).inputIcon}>
+                <Path
+                  d="M22 6C22 4.9 21.1 4 20 4H4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6ZM20 6L12 11L4 6H20ZM20 18H4V8L12 13L20 8V18Z"
+                  fill={colors.textSecondary}
                 />
-              </View>
-              {renderError('email')}
+              </Svg>
+              <TextInput
+                style={[getStyles(colors).input, formState.errors.email && getStyles(colors).inputError]}
+                placeholder="Email"
+                placeholderTextColor={colors.textSecondary}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={formState.email}
+                onChangeText={(text) => {
+                  updateFormState({ email: text });
+                  updateFormState({ errors: { ...formState.errors, email: null } });
+                }}
+              />
+            </View>
+            {renderError('email')}
 
             <View style={getStyles(colors).inputContainer}>
               <Svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={getStyles(colors).inputIcon}>
@@ -389,8 +417,6 @@ const LoginScreen = ({ navigation }) => {
               </LinearGradient>
             </TouchableOpacity>
 
-
-
             <View style={getStyles(colors).footer}>
               <Text style={getStyles(colors).footerText}>Don't have an account?</Text>
               <TouchableOpacity onPress={navigateToSignup}>
@@ -411,18 +437,29 @@ const getStyles = (colors) => StyleSheet.create({
   },
   content: {
     flex: 1,
-    justifyContent: 'flex-start', // Changed from center to reduce top space
+    justifyContent: 'flex-start',
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 20 : 10, // Reduced top padding
+    paddingTop: Platform.OS === 'ios' ? 20 : 10,
   },
   header: {
     alignItems: 'center',
     marginBottom: height * 0.03,
-    marginTop: 10, // Added top margin instead of excess space
+    marginTop: 10,
   },
   logoContainer: {
     alignItems: 'center',
     marginBottom: height * 0.02,
+  },
+  logoFallback: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: width * 0.7,
+    height: 60,
+  },
+  logoText: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: colors.primary,
   },
   headerTitle: {
     fontSize: 24,
@@ -435,6 +472,21 @@ const getStyles = (colors) => StyleSheet.create({
   biometricSection: {
     alignItems: 'center',
     marginBottom: height * 0.02,
+  },
+  separator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  separatorLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
+  },
+  separatorText: {
+    color: colors.textSecondary,
+    paddingHorizontal: 16,
+    fontSize: 14,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -471,57 +523,37 @@ const getStyles = (colors) => StyleSheet.create({
     fontSize: 14,
   },
   loginButton: {
-    height: 48,
+    paddingVertical: 14,
     borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginVertical: 8,
-  },
-  loginButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-    letterSpacing: 1,
-  },
-  separator: {
-    flexDirection: 'row',
     alignItems: 'center',
     marginVertical: 16,
   },
-  separatorLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.border,
+  loginButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
-  separatorText: {
-    marginHorizontal: 10,
-    color: colors.textSecondary,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: 20,
   },
   footerText: {
     color: colors.textSecondary,
     fontSize: 14,
   },
   signupText: {
-    color: colors.primary,
-    fontWeight: 'bold',
+    color: colors.secondary,
     fontSize: 14,
-    marginLeft: 5,
+    fontWeight: 'bold',
+    marginLeft: 4,
   },
   errorText: {
     color: colors.error,
     fontSize: 12,
-    marginTop: 2,
-    marginBottom: 4,
     marginLeft: 15,
+    marginTop: 4,
   },
 });
 

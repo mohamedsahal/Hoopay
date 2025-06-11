@@ -8,6 +8,8 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": false,
     "scheme": "hoopay",
+    "platforms": ["ios", "android", "web"],
+    "sdkVersion": "51.0.0",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -16,7 +18,8 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.exaliye.HoopayNew",
-      "googleServicesFile": "./GoogleService-Info.plist"
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "deploymentTarget": "13.4"
     },
     "android": {
       "adaptiveIcon": {
@@ -28,7 +31,7 @@
       "versionCode": 1,
       "compileSdkVersion": 34,
       "targetSdkVersion": 34,
-      "minSdkVersion": 21,
+      "minSdkVersion": 23,
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
