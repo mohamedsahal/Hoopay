@@ -1,4 +1,4 @@
-const PROD_API_URL = 'https://a0b0-102-217-123-227.ngrok-free.app'; // Production API URL
+const PROD_API_URL = 'https://hoopaywallet.com'; // Production API URL
 
 export const API_URL = PROD_API_URL;
 export const BASE_URL = `${API_URL}/api`;
