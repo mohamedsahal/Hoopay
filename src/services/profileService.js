@@ -284,23 +284,93 @@ const profileService = {
 
       console.log('Updating profile with data:', profileData);
       
-      // Use the dedicated mobile profile update endpoint for text fields
-      // This endpoint handles only text fields, not photos
+      // Try multiple endpoints in order of preference
       console.log('ENDPOINTS object keys:', Object.keys(ENDPOINTS));
       console.log('ENDPOINTS.PROFILE:', ENDPOINTS.PROFILE);
       console.log('ENDPOINTS.PROFILE keys:', ENDPOINTS.PROFILE ? Object.keys(ENDPOINTS.PROFILE) : 'undefined');
-      console.log('ENDPOINTS.PROFILE.UPDATE_FIELDS:', ENDPOINTS.PROFILE?.UPDATE_FIELDS);
-      // Force use of correct endpoint (cache busting)
-      const mobileProfileUpdateEndpoint = '/mobile/profile/update'; // Hardcoded to ensure correct endpoint
-      console.log('Using mobile profile update endpoint (hardcoded):', mobileProfileUpdateEndpoint);
-      console.log('ENDPOINTS.PROFILE.UPDATE_FIELDS was:', ENDPOINTS.PROFILE?.UPDATE_FIELDS);
       
-      const response = await api.put(mobileProfileUpdateEndpoint, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        timeout: 10000 // Standard timeout for text updates
-      });
+             // Endpoint priority order for text field updates
+       const endpointsToTry = [
+         { url: ENDPOINTS.PROFILE?.UPDATE_FIELDS, name: 'UPDATE_FIELDS' },
+         { url: ENDPOINTS.PROFILE?.UPDATE_ALT, name: 'UPDATE_ALT' },
+         { url: ENDPOINTS.PROFILE?.UPDATE, name: 'UPDATE' },
+         { url: '/mobile/profile/update', name: 'hardcoded mobile/profile/update' },
+         { url: '/mobile/profile', name: 'mobile/profile' },
+         { url: '/auth/mobile/profile', name: 'auth mobile profile' }
+       ].filter(endpoint => endpoint.url); // Only keep valid endpoints
+      
+      console.log('Endpoints to try:', endpointsToTry);
+      
+      let response;
+      let lastError;
+      
+      for (const endpoint of endpointsToTry) {
+        try {
+          console.log(`Trying endpoint: ${endpoint.name} (${endpoint.url})`);
+          
+                     // For profile updates, try both FormData and JSON approaches
+           const tryWithFormData = async () => {
+             console.log(`Attempting FormData request to ${endpoint.url}`);
+             return await api.put(endpoint.url, formData, {
+               headers: {
+                 'Content-Type': 'multipart/form-data',
+               },
+               timeout: 20000,
+               validateStatus: function (status) {
+                 return status < 500; // Accept anything less than server error
+               }
+             });
+           };
+           
+           const tryWithJSON = async () => {
+             // Convert FormData to JSON for endpoints that expect JSON
+             const jsonData = {};
+             if (profileData.name) jsonData.name = profileData.name;
+             if (profileData.phone) jsonData.phone = profileData.phone;
+             if (profileData.address) jsonData.address = profileData.address;
+             if (profileData.bio) jsonData.bio = profileData.bio;
+             if (profileData.country) jsonData.country = profileData.country;
+             
+             console.log(`Attempting JSON request to ${endpoint.url} with data:`, jsonData);
+             return await api.put(endpoint.url, jsonData, {
+               headers: {
+                 'Content-Type': 'application/json',
+               },
+               timeout: 20000,
+               validateStatus: function (status) {
+                 return status < 500; // Accept anything less than server error
+               }
+             });
+           };
+          
+          // Try FormData first, then JSON if that fails
+          try {
+            response = await tryWithFormData();
+            console.log(`✅ Success with FormData on ${endpoint.name}`);
+            break;
+          } catch (formDataError) {
+            console.log(`FormData failed on ${endpoint.name}, trying JSON:`, formDataError.message);
+            try {
+              response = await tryWithJSON();
+              console.log(`✅ Success with JSON on ${endpoint.name}`);
+              break;
+            } catch (jsonError) {
+              console.log(`JSON also failed on ${endpoint.name}:`, jsonError.message);
+              lastError = jsonError;
+            }
+          }
+          
+        } catch (error) {
+          console.log(`❌ Failed endpoint ${endpoint.name}:`, error.message);
+          lastError = error;
+          continue;
+        }
+      }
+      
+      if (!response) {
+        console.error('All endpoints failed, throwing last error:', lastError);
+        throw lastError;
+      }
 
       // Save updated data to secure storage to keep local data in sync
       if (response.data && (response.data.success || response.data.data)) {
@@ -363,14 +433,60 @@ const profileService = {
             if (profileData.bio) retryFormData.append('bio', profileData.bio);
             if (profileData.country) retryFormData.append('country', profileData.country);
             
-            // Note: This retry also only handles text fields, not photos
+            // Retry with the same endpoint strategy
+            console.log('Retrying with multiple endpoints...');
+            let retryResponse;
+            let retryLastError;
             
-            const retryResponse = await api.put(ENDPOINTS.PROFILE.UPDATE_FIELDS, retryFormData, {
-              headers: {
-                'Content-Type': 'multipart/form-data',
-              },
-              timeout: 10000
-            });
+            for (const endpoint of endpointsToTry) {
+              try {
+                console.log(`Retry: Trying endpoint: ${endpoint.name} (${endpoint.url})`);
+                
+                // Try JSON first for retry (often more reliable)
+                const retryJsonData = {};
+                if (profileData.name) retryJsonData.name = profileData.name;
+                if (profileData.phone) retryJsonData.phone = profileData.phone;
+                if (profileData.address) retryJsonData.address = profileData.address;
+                if (profileData.bio) retryJsonData.bio = profileData.bio;
+                if (profileData.country) retryJsonData.country = profileData.country;
+                
+                try {
+                  retryResponse = await api.put(endpoint.url, retryJsonData, {
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    timeout: 15000
+                  });
+                  console.log(`✅ Retry success with JSON on ${endpoint.name}`);
+                  break;
+                } catch (jsonError) {
+                  console.log(`Retry JSON failed on ${endpoint.name}, trying FormData:`, jsonError.message);
+                  try {
+                    retryResponse = await api.put(endpoint.url, retryFormData, {
+                      headers: {
+                        'Content-Type': 'multipart/form-data',
+                      },
+                      timeout: 15000
+                    });
+                    console.log(`✅ Retry success with FormData on ${endpoint.name}`);
+                    break;
+                  } catch (formDataError) {
+                    console.log(`Retry FormData also failed on ${endpoint.name}:`, formDataError.message);
+                    retryLastError = formDataError;
+                  }
+                }
+                
+              } catch (error) {
+                console.log(`❌ Retry failed endpoint ${endpoint.name}:`, error.message);
+                retryLastError = error;
+                continue;
+              }
+            }
+            
+            if (!retryResponse) {
+              console.error('All retry endpoints failed:', retryLastError);
+              throw retryLastError;
+            }
             
             if (retryResponse.data && (retryResponse.data.success || retryResponse.data.data)) {
               const retryResponseData = retryResponse.data.data || retryResponse.data;
@@ -448,35 +564,64 @@ const profileService = {
     }
   },
 
-  // Upload profile photo
+  // Upload profile photo using base64 (working method like KYC)
   uploadPhoto: async (photoUri) => {
     try {
+      console.log('=== STARTING BASE64 PROFILE PHOTO UPLOAD ===');
+      console.log('Photo URI:', photoUri);
+      
       // Refresh token if needed before uploading photo
       await profileService.refreshTokenIfNeeded();
       
-      const formData = new FormData();
-      formData.append('photo', {
-        uri: photoUri,
-        type: 'image/jpeg',
-        name: 'profile.jpg',
+      console.log('📡 Converting asset to base64...');
+      
+      // Convert asset to base64 using the same method as KYC
+      let fileData;
+      let fileName;
+      let mimeType;
+
+      if (photoUri) {
+        // For React Native
+        const response = await fetch(photoUri);
+        const blob = await response.blob();
+        fileData = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const base64data = reader.result.split(',')[1]; // Remove data:image/jpeg;base64, prefix
+            resolve(base64data);
+          };
+          reader.readAsDataURL(blob);
+        });
+        
+        fileName = `profile_${Date.now()}.jpg`;
+        mimeType = 'image/jpeg';
+      } else {
+        throw new Error('Invalid photo URI');
+      }
+
+      console.log('📤 Uploading base64 data...', {
+        fileName,
+        mimeType,
+        dataSize: fileData ? `${Math.round(fileData.length / 1024)}KB` : 'unknown'
       });
 
-      console.log('ENDPOINTS object keys:', Object.keys(ENDPOINTS));
-      console.log('ENDPOINTS.PROFILE:', ENDPOINTS.PROFILE);
-      console.log('ENDPOINTS.PROFILE keys:', ENDPOINTS.PROFILE ? Object.keys(ENDPOINTS.PROFILE) : 'undefined');
-      console.log('ENDPOINTS.PROFILE.UPLOAD_PHOTO:', ENDPOINTS.PROFILE?.UPLOAD_PHOTO);
-      
-      // Force use of correct endpoint (cache busting)
-      const uploadEndpoint = '/mobile/profile/photo'; // Hardcoded to ensure correct endpoint
-      console.log('Final upload endpoint to use (hardcoded):', uploadEndpoint);
-      console.log('ENDPOINTS.PROFILE.UPLOAD_PHOTO was:', ENDPOINTS.PROFILE?.UPLOAD_PHOTO);
-      
-      const response = await api.post(uploadEndpoint, formData, {
+      const requestData = {
+        file_data: fileData,
+        file_name: fileName,
+        mime_type: mimeType
+      };
+
+      console.log('Making base64 upload request to /mobile/profile/photo-base64');
+      console.log('Base URL:', api.defaults.baseURL);
+
+      const response = await api.post('/mobile/profile/photo-base64', requestData, {
+        timeout: 60000,
         headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        timeout: 30000 // 30 seconds for photo uploads
+          'Content-Type': 'application/json'
+        }
       });
+
+      console.log('✅ Base64 photo upload successful:', response.data);
 
       // Update local user data if successful
       if (response.data && response.data.success && response.data.data.user) {
@@ -485,8 +630,23 @@ const profileService = {
 
       return response.data;
     } catch (error) {
-      console.error('Photo upload error:', error);
-      throw new Error(error.response?.data?.message || 'Failed to upload photo');
+      console.error('=== BASE64 PHOTO UPLOAD ERROR ===');
+      console.error('Error type:', error.constructor.name);
+      console.error('Error message:', error.message);
+      console.error('Error code:', error.code);
+      console.error('Response status:', error.response?.status);
+      console.error('Response data:', error.response?.data);
+      
+      // Provide more specific error messages
+      if (error.code === 'ERR_NETWORK') {
+        throw new Error('Network connection failed. Please check your internet connection and try again.');
+      } else if (error.response?.status === 413) {
+        throw new Error('File is too large. Please choose a smaller image.');
+      } else if (error.response?.status === 422) {
+        throw new Error(error.response?.data?.message || 'Invalid file format. Please choose a valid image.');
+      } else {
+        throw new Error(error.response?.data?.message || 'Failed to upload photo. Please try again.');
+      }
     }
   },
 
@@ -496,10 +656,9 @@ const profileService = {
       // Refresh token if needed before deleting avatar
       await profileService.refreshTokenIfNeeded();
       
-      // Force use of correct endpoint (cache busting)
-      const deleteEndpoint = '/mobile/profile/photo'; // Hardcoded to ensure correct endpoint
-      console.log('Deleting avatar with hardcoded endpoint:', deleteEndpoint);
-      console.log('ENDPOINTS.PROFILE.DELETE_AVATAR was:', ENDPOINTS.PROFILE?.DELETE_AVATAR);
+      // Use the configured endpoint (photo delete uses same endpoint as upload)
+      const deleteEndpoint = ENDPOINTS.PROFILE?.DELETE_AVATAR || '/mobile/profile/photo';
+      console.log('Deleting avatar with endpoint:', deleteEndpoint);
       const response = await api.delete(deleteEndpoint);
       
       // Update local user data if successful
@@ -556,6 +715,187 @@ const profileService = {
     } catch (error) {
       console.error('Profile refresh error:', error);
       throw error;
+    }
+  },
+
+  // Get fresh profile data with photo - dedicated method for photo display
+  getProfileWithPhoto: async () => {
+    try {
+      console.log('🔄 Fetching fresh profile data with photo...');
+      
+      // Refresh token first
+      const tokenValid = await profileService.refreshTokenIfNeeded();
+      if (!tokenValid) {
+        throw new Error('No valid authentication token');
+      }
+      
+      const token = await SecureStore.getItemAsync('auth_token');
+      
+      // Try multiple endpoints to get profile with photo
+      const endpointsToTry = [
+        ENDPOINTS.PROFILE?.GET,
+        '/mobile/profile',
+        '/auth/mobile/profile'
+      ];
+      
+      for (const endpoint of endpointsToTry) {
+        if (!endpoint) continue;
+        
+        try {
+          console.log(`📡 Trying endpoint: ${endpoint}`);
+          
+          const response = await api.get(endpoint, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+              'Cache-Control': 'no-cache'
+            },
+            timeout: 10000
+          });
+          
+          let userData = null;
+          
+          // Handle different response formats
+          if (response.data?.success && response.data?.data) {
+            userData = response.data.data;
+          } else if (response.data?.data) {
+            userData = response.data.data;
+          } else if (response.data?.user) {
+            userData = response.data.user;
+          } else if (typeof response.data === 'object' && response.data.id) {
+            userData = response.data;
+          }
+          
+          if (userData) {
+            console.log('✅ Successfully fetched profile data');
+            console.log('📸 Avatar info from server:', {
+              avatar_url: userData.avatar_url,
+              photo_url: userData.photo_url,
+              photo_path: userData.photo_path,
+              has_profile_photo: userData.has_profile_photo
+            });
+            
+            // Normalize and validate avatar URLs for current environment
+            userData = profileService.normalizeProfilePhotoUrls(userData);
+            
+            console.log('📸 Normalized avatar info:', {
+              avatar_url: userData.avatar_url,
+              photo_url: userData.photo_url,
+              has_profile_photo: userData.has_profile_photo
+            });
+            
+            // Save to storage
+            await SecureStore.setItemAsync('userData', JSON.stringify(userData));
+            return userData;
+          }
+        } catch (endpointError) {
+          console.log(`❌ Failed with endpoint ${endpoint}:`, endpointError.message);
+          continue;
+        }
+      }
+      
+      throw new Error('All profile endpoints failed');
+    } catch (error) {
+      console.error('❌ getProfileWithPhoto error:', error);
+      
+      // Fallback to stored data
+      try {
+        const storedData = await SecureStore.getItemAsync('userData');
+        if (storedData) {
+          console.log('📱 Using stored profile data as fallback');
+          const parsedData = JSON.parse(storedData);
+          // Still try to normalize URLs even for stored data
+          return profileService.normalizeProfilePhotoUrls(parsedData);
+        }
+      } catch (storageError) {
+        console.error('Storage fallback error:', storageError);
+      }
+      
+      throw error;
+    }
+  },
+
+  // Normalize profile photo URLs for different environments
+  normalizeProfilePhotoUrls: (userData) => {
+    try {
+      if (!userData) return userData;
+      
+      const baseURL = api.defaults.baseURL;
+      console.log('📷 Normalizing URLs with baseURL:', baseURL);
+      
+      // Helper function to build proper URL
+      const buildPhotoUrl = (path) => {
+        if (!path || typeof path !== 'string') return null;
+        
+        // If already a complete URL, return as is
+        if (path.startsWith('http://') || path.startsWith('https://')) {
+          return path;
+        }
+        
+        // Clean the path
+        const cleanPath = path.replace(/^\/+/, '').replace(/^storage\//, '');
+        
+        // Build the full URL using current baseURL
+        const fullUrl = `${baseURL}/storage/${cleanPath}`;
+        console.log(`📷 Built URL: ${path} -> ${fullUrl}`);
+        return fullUrl;
+      };
+      
+      // Create a copy to avoid modifying the original
+      const normalizedData = { ...userData };
+      
+      // Try to get a valid photo URL from any available field
+      let validPhotoUrl = null;
+      
+      if (userData.avatar_url) {
+        validPhotoUrl = buildPhotoUrl(userData.avatar_url);
+      } else if (userData.photo_url) {
+        validPhotoUrl = buildPhotoUrl(userData.photo_url);
+      } else if (userData.photo_path) {
+        validPhotoUrl = buildPhotoUrl(userData.photo_path);
+      }
+      
+      // Set normalized URLs
+      if (validPhotoUrl) {
+        normalizedData.avatar_url = validPhotoUrl;
+        normalizedData.photo_url = validPhotoUrl;
+        normalizedData.has_profile_photo = true;
+        console.log('📷 Set normalized photo URL:', validPhotoUrl);
+      } else {
+        normalizedData.avatar_url = null;
+        normalizedData.photo_url = null;
+        normalizedData.has_profile_photo = false;
+        console.log('📷 No valid photo URL found');
+      }
+      
+      return normalizedData;
+    } catch (error) {
+      console.error('Error normalizing photo URLs:', error);
+      return userData; // Return original data if normalization fails
+    }
+  },
+
+  // Helper method to get profile photo URL
+  getProfilePhotoUrl: async () => {
+    try {
+      const profile = await profileService.getProfileWithPhoto();
+      
+      if (profile?.avatar_url) {
+        return profile.avatar_url;
+      } else if (profile?.photo_url) {
+        return profile.photo_url;
+      } else if (profile?.photo_path) {
+        const photoUrl = profile.photo_path.startsWith('http') 
+          ? profile.photo_path 
+          : `${api.defaults.baseURL}/storage/${profile.photo_path}`;
+        return photoUrl;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error getting profile photo URL:', error);
+      return null;
     }
   },
 

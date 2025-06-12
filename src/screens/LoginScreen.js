@@ -178,7 +178,33 @@ const LoginScreen = ({ navigation }) => {
 
   const handleBiometricSuccess = useCallback(async (result) => {
     try {
-      await login(result.userCredentials.token, result.userCredentials.user);
+      console.log('🚨🚨🚨 BIOMETRIC SUCCESS IN LOGINSCREEN.JS 🚨🚨🚨');
+      console.log('Biometric result:', result);
+      
+      // Extract the actual user data from biometric credentials
+      const localUserData = result.userCredentials?.localUserData;
+      
+      if (!localUserData || !localUserData.id || !localUserData.email) {
+        throw new Error('Invalid biometric credentials. Please log in with your password.');
+      }
+      
+      // Create a proper user object from localUserData
+      const user = {
+        id: Number(localUserData.id),
+        name: String(localUserData.name || ''),
+        email: String(localUserData.email),
+        email_verified: true,
+        is_verified: true,
+        referral_code: '',
+        phone: localUserData.phone ? String(localUserData.phone) : undefined
+      };
+      
+      console.log('Created user object for biometric login:', user);
+      
+      // Use the session token if available
+      const token = result.userCredentials?.sessionToken || '';
+      
+      await login(token, user);
     } catch (error) {
       console.error('Biometric login error:', error);
       Alert.alert(
@@ -228,11 +254,8 @@ const LoginScreen = ({ navigation }) => {
   };
 
   const handleForgotPassword = () => {
-    Alert.alert(
-      'Reset Password',
-      'Password reset functionality will be implemented soon.',
-      [{ text: 'OK' }]
-    );
+    // Navigate to the comprehensive password reset flow
+    navigation.navigate('ForgotPassword');
   };
 
   const navigateToSignup = () => {

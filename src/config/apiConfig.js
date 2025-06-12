@@ -22,7 +22,16 @@ export const ENDPOINTS = {
   REGISTER: '/auth/register',
   LOGOUT: '/mobile/logout',
   USER: '/mobile/user',
-  PASSWORD_RESET: '/auth/reset-password',
+  PASSWORD_RESET: '/auth/reset-password', // Legacy endpoint
+  
+  // Comprehensive password reset endpoints
+  FORGOT_PASSWORD: {
+    REQUEST: '/mobile/password/reset/request',
+    VERIFY: '/mobile/password/reset/verify', 
+    COMPLETE: '/mobile/password/reset/complete',
+    RESEND: '/mobile/password/reset/resend',
+    STATUS: '/mobile/password/reset/status'
+  },
   
   // Email Verification endpoints - using working /auth/ endpoints
   VERIFY_EMAIL: '/auth/verify-email',
@@ -33,6 +42,7 @@ export const ENDPOINTS = {
     GET: '/mobile/profile',
     UPDATE: '/mobile/profile',
     UPDATE_FIELDS: '/mobile/profile/update', // For text fields only
+    UPDATE_ALT: '/auth/mobile/profile', // Alternative endpoint
     CHANGE_PASSWORD: '/mobile/profile/password',
     NOTIFICATIONS: '/mobile/profile/notifications',
     UPLOAD_PHOTO: '/mobile/profile/photo', // For photo uploads
@@ -91,7 +101,9 @@ export const ENDPOINTS = {
     FEED: '/mobile/discussions/feed',
     CREATE: '/mobile/discussions',
     GET: '/mobile/discussions/', // Append post ID
+    DELETE: '/mobile/discussions/', // Append post ID
     COMMENTS: '/mobile/discussions/', // Append post ID and '/comments'
+    DELETE_COMMENT: '/mobile/discussions/comments/', // Append comment ID
     LIKE: '/mobile/discussions/like',
     TRENDING: '/mobile/discussions/trending'
   },

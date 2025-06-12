@@ -117,7 +117,7 @@ const RecentTransactionsSkeleton = ({ colors }) => (
   </View>
 );
 
-// Transaction Item Component
+// Transaction Item Component - BEST PRACTICE with Wallet IDs
 const TransactionItem = ({ 
   type, 
   amount, 
@@ -126,49 +126,126 @@ const TransactionItem = ({
   recipient,
   colors
 }) => {
-  const isCredit = type === 'credit';
+  // ✅ BEST PRACTICE: Clear incoming detection
+  const isIncoming = type === 'deposit' || type === 'received' || type === 'credit';
   
   let statusColor = colors.textSecondary;
   if (status === 'completed') statusColor = colors.success;
   if (status === 'pending') statusColor = colors.warning;
   if (status === 'failed') statusColor = colors.error;
   
+  // Dynamic icon based on transaction direction
+  const getTransactionIcon = () => {
+    if (isIncoming) {
+      // All incoming money: deposits, received transfers
+      return (
+        <Path
+          d="M16 3h5v5M14 10l7-7M8 21H3v-5M10 14l-7 7"
+          stroke={colors.success}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      );
+    } else if (type === 'withdrawal') {
+      // Withdrawals
+      return (
+        <Path
+          d="M12 16v-5M9 16v-2M15 16v-4"
+          stroke={colors.secondary}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      );
+    } else {
+      // Outgoing transfers
+      return (
+        <Path
+          d="M7 17L17 7M17 7H7M17 7V17"
+          stroke="#4A90E2"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      );
+    }
+  };
+
+  // Dynamic background color based on transaction direction
+  const getIconBackgroundColor = () => {
+    if (isIncoming) {
+      return 'rgba(57, 183, 71, 0.1)'; // Green for incoming money
+    } else if (type === 'withdrawal') {
+      return 'rgba(255, 140, 0, 0.1)'; // Orange for withdrawals
+    } else {
+      return 'rgba(74, 144, 226, 0.1)'; // Blue for outgoing transfers
+    }
+  };
+
+  // ✅ BEST PRACTICE: Handle recipient data (now simplified to strings)
+  const getRecipientDisplay = () => {
+    if (!recipient) return null;
+    
+    // Handle string format (current format from server)
+    if (typeof recipient === 'string') {
+      return recipient;
+    }
+    
+    // Handle legacy object format (backwards compatibility)
+    if (typeof recipient === 'object' && recipient.display) {
+      return recipient.display;
+    }
+    
+    return null;
+  };
+
+  // ✅ BEST PRACTICE: Clear titles with wallet IDs
+  const getTitle = () => {
+    const recipientDisplay = getRecipientDisplay();
+    
+    switch (type) {
+      case 'deposit':
+        return 'Deposit';
+      
+      case 'withdrawal':
+        return 'Withdrawal';
+      
+      case 'received':
+      case 'credit':
+        // Money received from someone
+        return recipientDisplay ? `Received from ${recipientDisplay}` : 'Received';
+      
+      case 'sent':
+      case 'transfer':
+        // Money sent to someone  
+        return recipientDisplay ? `Transfer to ${recipientDisplay}` : 'Transfer';
+      
+      default:
+        return 'Transaction';
+    }
+  };
+  
   return (
     <View style={[styles.transactionItem, { backgroundColor: colors.cardBackground }]}>
       <View style={[styles.transactionIconContainer, { 
-        backgroundColor: isCredit ? 'rgba(57, 183, 71, 0.1)' : 'rgba(255, 107, 107, 0.1)' 
+        backgroundColor: getIconBackgroundColor()
       }]}>
         <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          {isCredit ? (
-            <Path
-              d="M16 3h5v5M14 10l7-7M8 21H3v-5M10 14l-7 7"
-              stroke={colors.success}
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          ) : (
-            <Path
-              d="M3 3h5v5M14 14l-7-7M21 21h-5v-5M10 10l7 7"
-              stroke={colors.error}
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          )}
+          {getTransactionIcon()}
         </Svg>
       </View>
       <View style={styles.transactionDetails}>
         <Text style={[styles.transactionType, { color: colors.text }]}>
-          {type === 'credit' ? 'Received' : type === 'transfer' ? 'Transfer to ' + recipient : 'Withdrawal'}
+          {getTitle()}
         </Text>
         <Text style={[styles.transactionDate, { color: colors.textSecondary }]}>{date}</Text>
       </View>
       <View style={styles.transactionAmountContainer}>
         <Text style={[styles.transactionAmount, { 
-          color: isCredit ? colors.success : colors.text 
+          color: isIncoming ? colors.success : colors.text 
         }]}>
-          {isCredit ? '+' : '-'}${amount}
+          {isIncoming ? '+' : '-'}${amount}
         </Text>
         <Text style={[styles.transactionStatus, { color: statusColor }]}>
           {status}

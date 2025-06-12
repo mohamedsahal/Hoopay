@@ -2,7 +2,7 @@ import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
 // Configuration
-const API_URL = 'https://hoopaywallet.com/api';
+const API_URL = 'https://a0b0-102-217-123-227.ngrok-free.app/api';
 
 class ReferralService {
   constructor() {
@@ -71,8 +71,6 @@ class ReferralService {
       };
     }
   }
-
-
 
   // Get list of user's referrals (privacy-focused mobile endpoint)
   async getReferrals(page = 1, perPage = 15, status = null) {

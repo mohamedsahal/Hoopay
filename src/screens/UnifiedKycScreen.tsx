@@ -14,6 +14,7 @@ import {
   Platform,
   Dimensions,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -54,7 +55,8 @@ interface ValidationErrors {
 }
 
 const UnifiedKycScreen: React.FC<UnifiedKycScreenProps> = ({ navigation }) => {
-  const { colors, isDarkMode } = useTheme();
+  const { isDarkMode } = useTheme();
+  const colors = (useTheme() as any).theme;
   const insets = useSafeAreaInsets();
 
   // Personal info state
@@ -231,8 +233,7 @@ const UnifiedKycScreen: React.FC<UnifiedKycScreenProps> = ({ navigation }) => {
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: documentType === 'selfie' ? [1, 1] : [4, 3],
+      allowsEditing: false,
       quality: 0.8,
     });
 
@@ -266,8 +267,7 @@ const UnifiedKycScreen: React.FC<UnifiedKycScreenProps> = ({ navigation }) => {
     }
 
     const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: documentType === 'selfie' ? [1, 1] : [4, 3],
+      allowsEditing: false,
       quality: 0.8,
     });
 
@@ -1019,24 +1019,29 @@ const UnifiedKycScreen: React.FC<UnifiedKycScreenProps> = ({ navigation }) => {
               
               {/* Submit Button */}
               <TouchableOpacity
-                style={[
-                  styles.submitButton,
-                  {
-                    backgroundColor: submitting ? colors.disabled : colors.primary,
-                    opacity: submitting ? 0.7 : 1,
-                  }
-                ]}
+                style={[styles.submitButton, { opacity: submitting ? 0.7 : 1 }]}
                 onPress={handleSubmit}
                 disabled={submitting}
+                activeOpacity={0.8}
               >
-                {submitting ? (
-                  <ActivityIndicator size="small" color="white" />
-                ) : (
-                  <>
-                    <Ionicons name="shield-checkmark" size={20} color="white" />
-                    <Text style={styles.submitButtonText}>Submit KYC Verification</Text>
-                  </>
-                )}
+                <LinearGradient
+                  colors={submitting 
+                    ? [colors.disabled || '#9CA3AF', colors.disabled || '#9CA3AF']
+                    : [colors.primary, colors.primary + 'DD']
+                  }
+                  style={styles.submitButtonGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  {submitting ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <>
+                      <Ionicons name="shield-checkmark" size={22} color="white" />
+                      <Text style={styles.submitButtonText}>Submit KYC Verification</Text>
+                    </>
+                  )}
+                </LinearGradient>
               </TouchableOpacity>
             </>
           )}
@@ -1114,16 +1119,12 @@ const styles = StyleSheet.create({
   },
 
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
   },
   
   kycHeaderSection: {
@@ -1132,14 +1133,15 @@ const styles = StyleSheet.create({
   },
   
   kycTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    letterSpacing: 0.3,
+    fontSize: 24,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
 
   kycSubtitle: {
-    fontSize: 14,
-    marginTop: 2,
+    fontSize: 15,
+    marginTop: 4,
+    opacity: 0.8,
   },
 
   placeholder: {
@@ -1154,13 +1156,10 @@ const styles = StyleSheet.create({
     margin: 20,
     marginTop: 0,
     padding: 24,
-    borderRadius: 16,
+    borderRadius: 20,
     marginBottom: 20,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.08)',
   },
 
   sectionHeader: {
@@ -1170,10 +1169,10 @@ const styles = StyleSheet.create({
   },
 
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginLeft: 12,
-    letterSpacing: 0.3,
+    fontSize: 20,
+    fontWeight: '700',
+    marginLeft: 16,
+    letterSpacing: 0.4,
   },
 
   inputGroup: {
@@ -1181,27 +1180,29 @@ const styles = StyleSheet.create({
   },
 
   inputLabel: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
-    marginBottom: 8,
-    letterSpacing: 0.2,
+    marginBottom: 12,
+    letterSpacing: 0.3,
   },
 
   textInput: {
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 16,
+    padding: 18,
     fontSize: 16,
-    borderWidth: 1.5,
+    borderWidth: 1,
     fontWeight: '400',
+    minHeight: 56,
   },
 
   pickerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1.5,
+    borderRadius: 16,
+    padding: 18,
+    borderWidth: 1,
+    minHeight: 56,
   },
 
   pickerText: {
@@ -1217,9 +1218,9 @@ const styles = StyleSheet.create({
 
   dateField: {
     flex: 1,
-    borderWidth: 1.5,
-    borderRadius: 12,
-    padding: 16,
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 18,
     marginHorizontal: 4,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1251,9 +1252,12 @@ const styles = StyleSheet.create({
   infoCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    padding: 16,
-    borderRadius: 12,
+    padding: 20,
+    borderRadius: 16,
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.1)',
+    backgroundColor: 'rgba(59, 130, 246, 0.02)',
   },
 
   infoText: {
@@ -1268,20 +1272,21 @@ const styles = StyleSheet.create({
   },
 
   documentLabel: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
-    marginBottom: 12,
-    letterSpacing: 0.2,
+    marginBottom: 16,
+    letterSpacing: 0.3,
   },
 
   uploadButton: {
-    height: 140,
+    height: 160,
     borderWidth: 2,
     borderStyle: 'dashed',
-    borderRadius: 16,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+    backgroundColor: 'rgba(0, 0, 0, 0.01)',
   },
 
   uploadText: {
@@ -1299,7 +1304,7 @@ const styles = StyleSheet.create({
   uploadedImage: {
     width: '100%',
     height: '100%',
-    borderRadius: 12,
+    borderRadius: 16,
     resizeMode: 'cover',
   },
 
@@ -1308,7 +1313,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 12,
+    borderRadius: 16,
   },
 
   uploadedText: {
@@ -1320,9 +1325,12 @@ const styles = StyleSheet.create({
   tipCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    padding: 16,
-    borderRadius: 12,
-    marginTop: 8,
+    padding: 20,
+    borderRadius: 16,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(34, 197, 94, 0.1)',
+    backgroundColor: 'rgba(34, 197, 94, 0.02)',
   },
 
   tipContent: {
@@ -1345,36 +1353,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 16,
-    padding: 18,
+    borderRadius: 20,
+    padding: 20,
     margin: 20,
     marginTop: 0,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    minHeight: 60,
+  },
+
+  submitButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 20,
+    padding: 20,
+    minHeight: 60,
   },
 
   submitButtonText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700',
-    marginLeft: 8,
-    letterSpacing: 0.3,
+    marginLeft: 10,
+    letterSpacing: 0.4,
   },
   
   // Review Card Styles
   reviewCard: {
-    borderRadius: 12,
-    padding: 20,
+    borderRadius: 20,
+    padding: 24,
     marginBottom: 24,
-    borderWidth: 2,
+    borderWidth: 1,
     margin: 20,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: 'rgba(245, 158, 11, 0.02)',
   },
   reviewHeader: {
     flexDirection: 'row',
@@ -1449,9 +1459,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: 16,
+    padding: 16,
     borderWidth: 1,
+    minHeight: 50,
   },
   contactButtonText: {
     fontSize: 14,
@@ -1461,15 +1472,12 @@ const styles = StyleSheet.create({
   
   // Verified Card Styles
   verifiedCard: {
-    borderRadius: 12,
-    padding: 20,
+    borderRadius: 20,
+    padding: 24,
     marginBottom: 24,
-    borderWidth: 2,
+    borderWidth: 1,
     margin: 20,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: 'rgba(34, 197, 94, 0.02)',
   },
   verifiedHeader: {
     flexDirection: 'row',
@@ -1537,8 +1545,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 20,
+    padding: 20,
+    minHeight: 60,
   },
   exploreButtonText: {
     fontSize: 16,

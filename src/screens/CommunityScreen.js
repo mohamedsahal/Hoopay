@@ -864,6 +864,112 @@ const CommunityScreen = ({ navigation }) => {
     }
   };
 
+  // Delete post with confirmation
+  const handleDeletePost = async (postId) => {
+    try {
+      Alert.alert(
+        'Delete Post',
+        'Are you sure you want to delete this post? This action cannot be undone.',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              triggerHaptic();
+              
+              const token = await getAuthToken();
+              if (!token) {
+                Alert.alert('Error', 'Please login to delete posts');
+                return;
+              }
+              
+              // Use direct URL construction matching the backend routes
+              const deleteUrl = `${BASE_URL}/mobile/discussions/${postId}`;
+              console.log('Delete post URL:', deleteUrl);
+              
+              const response = await fetch(deleteUrl, {
+                method: 'DELETE',
+                headers: getHeaders(token),
+              });
+              
+              const data = await response.json();
+              console.log('Delete post response:', data);
+              
+              if (data.success) {
+                // Remove post from state
+                setPosts(prev => prev.filter(post => post.id !== postId));
+                setPinnedPosts(prev => prev.filter(post => post.id !== postId));
+                setTrendingPosts(prev => prev.filter(post => post.id !== postId));
+                Alert.alert('Success', 'Post deleted successfully!');
+              } else {
+                Alert.alert('Error', data.error || 'Failed to delete post');
+              }
+            },
+          },
+        ]
+      );
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      Alert.alert('Error', 'Failed to delete post: ' + error.message);
+    }
+  };
+
+  // Delete comment with confirmation
+  const handleDeleteComment = async (commentId) => {
+    try {
+      Alert.alert(
+        'Delete Comment',
+        'Are you sure you want to delete this comment? This action cannot be undone.',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              triggerHaptic();
+              
+              const token = await getAuthToken();
+              if (!token) {
+                Alert.alert('Error', 'Please login to delete comments');
+                return;
+              }
+              
+              // Use direct URL construction matching the backend routes
+              const deleteUrl = `${BASE_URL}/mobile/discussions/comments/${commentId}`;
+              console.log('Delete comment URL:', deleteUrl);
+              
+              const response = await fetch(deleteUrl, {
+                method: 'DELETE',
+                headers: getHeaders(token),
+              });
+              
+              const data = await response.json();
+              console.log('Delete comment response:', data);
+              
+              if (data.success) {
+                Alert.alert('Success', 'Comment deleted successfully!');
+                // You might want to refresh the post or remove the comment from local state
+                // For now, we'll just show success message
+              } else {
+                Alert.alert('Error', data.error || 'Failed to delete comment');
+              }
+            },
+          },
+        ]
+      );
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      Alert.alert('Error', 'Failed to delete comment: ' + error.message);
+    }
+  };
+
   const toggleLike = async (postId, isPost = true) => {
     try {
       // Haptic feedback for instant response
@@ -1674,6 +1780,24 @@ const CommunityScreen = ({ navigation }) => {
   };
 
   // Render functions for components
+  // Handle comment changes in post cards
+  const handleCommentChange = (action, comment) => {
+    // Update post comments count in state
+    if (action === 'add') {
+      setPosts(prev => prev.map(post => 
+        post.id === comment.post_id 
+          ? { ...post, comments_count: post.comments_count + 1 }
+          : post
+      ));
+    } else if (action === 'delete') {
+      setPosts(prev => prev.map(post => 
+        post.comments && post.comments.some(c => c.id === comment.id)
+          ? { ...post, comments_count: Math.max(0, post.comments_count - 1) }
+          : post
+      ));
+    }
+  };
+
   const renderPost = ({ item: post }) => (
     <PostCard
       post={post}
@@ -1685,6 +1809,8 @@ const CommunityScreen = ({ navigation }) => {
       onNavigate={(screen, params) => navigation.navigate(screen, params)}
       onUserPress={navigateToUserProfile}
       onCommentPress={() => navigation.navigate('PostDetail', { postId: post.id })}
+      onDelete={handleDeletePost}
+      onCommentChange={handleCommentChange}
       triggerHaptic={triggerHaptic}
     />
   );

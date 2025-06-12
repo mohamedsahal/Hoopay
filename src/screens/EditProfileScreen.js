@@ -77,19 +77,58 @@ const EditProfileScreen = ({ navigation, route }) => {
       setBio(userInfo?.bio || '');
       setCountry(userInfo?.country || '');
       
-      // If there's a photo_path, we could set it as the avatar
+      // Enhanced photo URL handling
+      let photoUrl = null;
+      
       if (userInfo?.avatar_url) {
         // Use the full URL if available (new format from backend)
-        setAvatar({ uri: userInfo.avatar_url });
+        photoUrl = userInfo.avatar_url;
+        console.log('✅ Using avatar_url:', photoUrl);
       } else if (userInfo?.photo_url) {
         // Alternative field name for full URL
-        setAvatar({ uri: userInfo.photo_url });
+        photoUrl = userInfo.photo_url;
+        console.log('✅ Using photo_url:', photoUrl);
       } else if (userInfo?.photo_path) {
         // Legacy: try to construct URL from relative path
-        const photoUrl = userInfo.photo_path.startsWith('http') 
-          ? userInfo.photo_path 
-          : `${api.defaults.baseURL}/storage/${userInfo.photo_path}`;
-        setAvatar({ uri: photoUrl });
+        if (userInfo.photo_path.startsWith('http')) {
+          photoUrl = userInfo.photo_path;
+        } else {
+          photoUrl = `${api.defaults.baseURL}/storage/${userInfo.photo_path}`;
+        }
+        console.log('✅ Using constructed URL from photo_path:', photoUrl);
+      }
+      
+      if (photoUrl) {
+        // Test if the photo URL is accessible before setting it
+        console.log('🔍 Testing photo URL accessibility:', photoUrl);
+        
+        try {
+          // Create a simple Image object to test URL
+          const testImage = new Image();
+          testImage.onload = () => {
+            console.log('✅ Photo URL is accessible');
+            setAvatar({ uri: photoUrl });
+          };
+          testImage.onerror = () => {
+            console.log('❌ Photo URL not accessible, using fallback');
+            // Try alternative URL construction
+            const fallbackUrl = photoUrl.replace('/storage/', '/storage/');
+            console.log('🔄 Trying fallback URL:', fallbackUrl);
+            setAvatar({ uri: fallbackUrl });
+          };
+          testImage.src = photoUrl;
+          
+          // Also set the avatar immediately for better UX
+          setAvatar({ uri: photoUrl });
+        } catch (testError) {
+          console.log('❌ Photo URL test failed:', testError);
+          setAvatar({ uri: photoUrl }); // Still try to use it
+        }
+        
+        console.log('📸 Profile photo set successfully');
+      } else {
+        setAvatar(null);
+        console.log('📸 No profile photo found');
       }
     } catch (error) {
       console.error('Failed to fetch profile:', error);
@@ -128,11 +167,30 @@ const EditProfileScreen = ({ navigation, route }) => {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.8,
+      quality: 0.7, // Reduce quality to limit file size
     });
     
     if (!result.canceled) {
-      setAvatar(result.assets[0]);
+      const asset = result.assets[0];
+      
+      // Check file size (limit to 5MB for testing)
+      if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
+        Alert.alert(
+          'File Too Large',
+          'Please choose an image smaller than 5MB. You can try reducing the image quality or dimensions.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+      
+      console.log('Selected image info:', {
+        width: asset.width,
+        height: asset.height,
+        fileSize: asset.fileSize,
+        type: asset.type
+      });
+      
+      setAvatar(asset);
     }
   };
 

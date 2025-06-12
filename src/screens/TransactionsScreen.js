@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,8 @@ import {
   TextInput,
   Alert,
   Modal,
-  Platform
+  Platform,
+  Share
 } from 'react-native';
 import { Svg, Path } from 'react-native-svg';
 import { StatusBar } from 'expo-status-bar';
@@ -27,6 +28,9 @@ import api from '../services/api';
 import Colors from '../constants/Colors';
 import { LoadingSkeleton } from '../components/Loading';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import ViewShot from 'react-native-view-shot';
+import * as Sharing from 'expo-sharing';
+import ThermalReceipt from '../components/ThermalReceipt';
 
 // Filter categories for financial transactions
 const filterOptions = [
@@ -39,8 +43,8 @@ const filterOptions = [
 const TransactionItem = ({ transaction, onPress }) => {
   const { colors } = useTheme();
   
-  // Determine if it's a credit transaction (money coming in)
-  const isCredit = transaction.type === 'credit' || transaction.type === 'deposit';
+  // ✅ BEST PRACTICE: Clear incoming detection - same as HomeScreen
+  const isIncoming = transaction.type === 'deposit' || transaction.type === 'received' || transaction.type === 'credit';
   
   // Get status color
   let statusColor = colors.textSecondary;
@@ -48,9 +52,10 @@ const TransactionItem = ({ transaction, onPress }) => {
   if (transaction.status === 'pending') statusColor = colors.warning;
   if (transaction.status === 'failed') statusColor = colors.error;
   
-  // Get transaction icon based on type
-  const getTransactionIcon = (type) => {
-    if (type === 'deposit' || type === 'credit') {
+  // Dynamic transaction icon based on direction
+  const getTransactionIcon = () => {
+    if (isIncoming) {
+      // All incoming money: deposits, received transfers
       return (
         <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
           <Path
@@ -62,7 +67,8 @@ const TransactionItem = ({ transaction, onPress }) => {
           />
         </Svg>
       );
-    } else if (type === 'withdrawal') {
+    } else if (transaction.type === 'withdrawal') {
+      // Withdrawals
       return (
         <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
           <Path
@@ -81,7 +87,8 @@ const TransactionItem = ({ transaction, onPress }) => {
           />
         </Svg>
       );
-    } else { // transfer
+    } else {
+      // Outgoing transfers
       return (
         <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
           <Path
@@ -96,33 +103,67 @@ const TransactionItem = ({ transaction, onPress }) => {
     }
   };
 
-  // Get background color for icon
-  const getIconBackgroundColor = (type) => {
-    if (type === 'deposit' || type === 'credit') {
-      return 'rgba(57, 183, 71, 0.1)';
-    } else if (type === 'withdrawal') {
-      return 'rgba(255, 140, 0, 0.1)';
+  // Dynamic background color based on direction
+  const getIconBackgroundColor = () => {
+    if (isIncoming) {
+      return 'rgba(57, 183, 71, 0.1)'; // Green for incoming money
+    } else if (transaction.type === 'withdrawal') {
+      return 'rgba(255, 140, 0, 0.1)'; // Orange for withdrawals
     } else {
-      return 'rgba(74, 144, 226, 0.1)';
+      return 'rgba(74, 144, 226, 0.1)'; // Blue for outgoing transfers
     }
   };
 
-  // Format title
+  // ✅ BEST PRACTICE: Handle recipient data (now simplified to strings) - same as HomeScreen
+  const getRecipientDisplay = () => {
+    if (!transaction.recipient) return null;
+    
+    // Handle string format (current format from server)
+    if (typeof transaction.recipient === 'string') {
+      return transaction.recipient;
+    }
+    
+    // Handle legacy object format (backwards compatibility)
+    if (typeof transaction.recipient === 'object' && transaction.recipient.display) {
+      return transaction.recipient.display;
+    }
+    
+    return null;
+  };
+
+  // ✅ BEST PRACTICE: Clear titles with wallet IDs - same as HomeScreen
   const getTitle = () => {
-    if (transaction.type === 'deposit') return 'Deposit';
-    if (transaction.type === 'withdrawal') return 'Withdrawal';
-    if (transaction.type === 'credit') return 'Received';
-    if (transaction.type === 'transfer') return `Transfer${transaction.recipient ? ' to ' + transaction.recipient : ''}`;
-    return transaction.description || 'Transaction';
+    const recipientDisplay = getRecipientDisplay();
+    
+    switch (transaction.type) {
+      case 'deposit':
+        return 'Deposit';
+      
+      case 'withdrawal':
+        return 'Withdrawal';
+      
+      case 'received':
+      case 'credit':
+        // Money received from someone
+        return recipientDisplay ? `Received from ${recipientDisplay}` : 'Received';
+      
+      case 'sent':
+      case 'transfer':
+        // Money sent to someone  
+        return recipientDisplay ? `Transfer to ${recipientDisplay}` : 'Transfer';
+      
+      default:
+        return transaction.description || 'Transaction';
+    }
   };
 
   return (
     <TouchableOpacity style={[styles.transactionItem, { backgroundColor: colors.cardBackground }]} onPress={() => onPress && onPress(transaction)}>
       <View style={styles.transactionHeader}>
         <View style={[styles.transactionIconContainer, {
-          backgroundColor: getIconBackgroundColor(transaction.type)
+          backgroundColor: getIconBackgroundColor()
         }]}>
-          {getTransactionIcon(transaction.type)}
+          {getTransactionIcon()}
         </View>
         <View style={styles.transactionHeaderContent}>
           <Text style={[styles.transactionTitle, { color: colors.text }]}>{getTitle()}</Text>
@@ -130,9 +171,9 @@ const TransactionItem = ({ transaction, onPress }) => {
         </View>
         <View style={styles.amountContainer}>
           <Text style={[styles.transactionAmount, {
-            color: isCredit ? colors.success : colors.text 
+            color: isIncoming ? colors.success : colors.text 
           }]}>
-            {isCredit ? '+' : '-'}${transaction.amount}
+            {isIncoming ? '+' : '-'}${transaction.amount}
           </Text>
           <View style={styles.statusContainer}>
             <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
@@ -313,7 +354,7 @@ const DateFilterModal = ({ visible, onClose, onApply, initialFromDate, initialTo
 const TransactionsScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const tabBarHeight = useTabBarSafeHeight();
-  const { authToken } = useAuth();
+  const { authToken, user } = useAuth();
   
   // Use fallback colors and theme if context is not available
   let colors, isDarkMode;
@@ -345,6 +386,12 @@ const TransactionsScreen = ({ navigation }) => {
   const [dateFilterVisible, setDateFilterVisible] = useState(false);
   const [dateFilterFromDate, setDateFilterFromDate] = useState(null);
   const [dateFilterToDate, setDateFilterToDate] = useState(null);
+
+  // Receipt modal states
+  const [receiptModalVisible, setReceiptModalVisible] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const receiptRef = useRef();
 
   // Fetch transactions from API
   const fetchTransactions = async (page = 1, isRefresh = false, isLoadMore = false) => {
@@ -457,10 +504,11 @@ const TransactionsScreen = ({ navigation }) => {
     }
   };
 
-  // Handle transaction press (for future detail view)
+  // Handle transaction press - show receipt modal
   const handleTransactionPress = (transaction) => {
     console.log('Transaction pressed:', transaction.id);
-    // TODO: Navigate to transaction detail screen
+    setSelectedTransaction(transaction);
+    setReceiptModalVisible(true);
   };
 
   // Handle date filter
@@ -469,6 +517,187 @@ const TransactionsScreen = ({ navigation }) => {
     setDateFilterToDate(toDate);
     setDateFilterVisible(false);
   };
+
+  // Share receipt functionality
+  const shareReceipt = async () => {
+    if (!selectedTransaction) {
+      Alert.alert('Error', 'No transaction selected for receipt');
+      return;
+    }
+
+    try {
+      setIsCapturing(true);
+      
+      // Check if receiptRef is available
+      if (!receiptRef.current) {
+        throw new Error('Receipt not ready for capture');
+      }
+      
+      // Capture the receipt view as image
+      const uri = await receiptRef.current.capture();
+      console.log('Receipt captured:', uri);
+      
+      // Check if sharing is available
+      const isAvailable = await Sharing.isAvailableAsync();
+      
+      if (isAvailable) {
+        // Use Expo Sharing for better cross-platform support
+        await Sharing.shareAsync(uri, {
+          mimeType: 'image/jpeg',
+          dialogTitle: 'Share Transaction Receipt',
+          UTI: 'public.jpeg'
+        });
+      } else {
+        // Fallback to React Native's built-in Share API
+        if (Platform.OS === 'ios') {
+          await Share.share({
+            url: uri,
+            message: 'Transaction Receipt from Hoopay Wallet',
+            title: 'Transaction Receipt',
+          });
+        } else {
+          // For Android, try the built-in share with both message and url
+          await Share.share({
+            message: 'Transaction Receipt from Hoopay Wallet',
+            title: 'Transaction Receipt',
+            url: uri,
+          });
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error capturing/sharing receipt:', error);
+      
+      // Check if user cancelled sharing (common error message patterns)
+      const errorMessage = error.message || '';
+      if (errorMessage.includes('User did not share') || 
+          errorMessage.includes('cancelled') || 
+          errorMessage.includes('dismiss')) {
+        console.log('User cancelled sharing');
+        return;
+      }
+      
+      // Enhanced fallback to text sharing if image capture fails
+      try {
+        const receiptText = `
+🧾 TRANSACTION RECEIPT 🧾
+
+✅ Transaction Successful!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 Transaction ID: ${selectedTransaction?.id || 'N/A'}
+💰 Amount: $${selectedTransaction?.amount || '0.00'}
+📅 Date: ${selectedTransaction?.date || new Date().toLocaleDateString()}
+📊 Status: ${selectedTransaction?.status || 'Unknown'}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💙 Powered by Hoopay Wallet
+        `.trim();
+
+        await Share.share({
+          message: receiptText,
+          title: 'Transaction Receipt',
+        });
+      } catch (fallbackError) {
+        console.error('Fallback sharing also failed:', fallbackError);
+        // Don't show error if user just cancelled
+        const fallbackErrorMessage = fallbackError.message || '';
+        if (!fallbackErrorMessage.includes('User did not share') && 
+            !fallbackErrorMessage.includes('cancelled') &&
+            !fallbackErrorMessage.includes('dismiss')) {
+          Alert.alert('Error', 'Failed to share receipt. Please try again.');
+        }
+      }
+    } finally {
+      setIsCapturing(false);
+    }
+  };
+
+  // Close receipt modal
+  const closeReceiptModal = () => {
+    setReceiptModalVisible(false);
+    setSelectedTransaction(null);
+  };
+
+  // Get transaction type for receipt
+  const getTransactionType = (transaction) => {
+    if (transaction.type === 'deposit') return 'deposit';
+    if (transaction.type === 'withdrawal') return 'withdrawal';
+    return 'transfer';
+  };
+
+  // Helper function to get recipient display (duplicate from TransactionItem)
+  const getRecipientDisplay = useCallback((transaction) => {
+    if (!transaction?.recipient) return null;
+    
+    // Handle string format (current format from server)
+    if (typeof transaction.recipient === 'string') {
+      return transaction.recipient;
+    }
+    
+    // Handle legacy object format (backwards compatibility)
+    if (typeof transaction.recipient === 'object' && transaction.recipient.display) {
+      return transaction.recipient.display;
+    }
+    
+    return null;
+  }, []);
+
+  // Get recipient info for receipt
+  const getReceiptRecipientInfo = useCallback((transaction) => {
+    if (!transaction) return { name: 'N/A', method: 'N/A', account: 'N/A' };
+    
+    const recipientDisplay = getRecipientDisplay(transaction);
+    
+    if (transaction.type === 'deposit') {
+      return {
+        name: 'Your Account',
+        method: 'Deposit',
+        account: user?.wallet_id || user?.wallet?.wallet_id || 'N/A'
+      };
+    }
+    
+    if (transaction.type === 'withdrawal') {
+      return {
+        name: 'External Account',
+        method: 'Withdrawal',
+        account: 'N/A'
+      };
+    }
+    
+    // For transfers
+    const isIncoming = transaction.type === 'received' || transaction.type === 'credit';
+    
+    if (isIncoming) {
+      return {
+        name: user?.name || user?.first_name || 'You',
+        method: 'Transfer',
+        account: user?.wallet_id || user?.wallet?.wallet_id || 'N/A'
+      };
+    } else {
+      return {
+        name: recipientDisplay || 'Unknown',
+        method: 'Transfer',
+        account: 'N/A'
+      };
+    }
+  }, [user, getRecipientDisplay]);
+
+  // Get sender info for receipt
+  const getReceiptSenderInfo = useCallback((transaction) => {
+    if (!transaction) return { name: 'N/A' };
+    
+    const recipientDisplay = getRecipientDisplay(transaction);
+    const isIncoming = transaction.type === 'received' || transaction.type === 'credit';
+    
+    if (isIncoming) {
+      return {
+        name: recipientDisplay || 'Unknown'
+      };
+    } else {
+      return {
+        name: user?.name || user?.first_name || 'You'
+      };
+    }
+  }, [user, getRecipientDisplay]);
 
   // Render footer for FlatList
   const renderFooter = () => {
@@ -669,6 +898,100 @@ const TransactionsScreen = ({ navigation }) => {
         maxToRenderPerBatch={10}
         windowSize={10}
       />
+
+      {/* Receipt Modal */}
+      <Modal
+        visible={receiptModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={closeReceiptModal}
+      >
+        <SafeAreaView style={[styles.receiptModalContainer, { backgroundColor: colors.background }]}>
+          <StatusBar 
+            style={isDarkMode ? "light" : "dark"} 
+            backgroundColor={colors.background}
+          />
+          
+          {/* Receipt Modal Header */}
+          <View style={[styles.receiptModalHeader, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
+            <TouchableOpacity onPress={closeReceiptModal} style={styles.receiptModalCloseButton}>
+              <MaterialIcons name="close" size={24} color={colors.text} />
+            </TouchableOpacity>
+            <Text style={[styles.receiptModalTitle, { color: colors.text }]}>Transaction Receipt</Text>
+            <TouchableOpacity 
+              onPress={shareReceipt} 
+              style={[styles.receiptModalShareButton, { backgroundColor: colors.primary }]}
+              disabled={isCapturing}
+            >
+              {isCapturing ? (
+                <ActivityIndicator size={16} color="#FFFFFF" />
+              ) : (
+                <MaterialIcons name="share" size={16} color="#FFFFFF" />
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {/* Receipt Content */}
+          <ScrollView 
+            style={styles.receiptModalContent}
+            contentContainerStyle={styles.receiptModalContentContainer}
+            showsVerticalScrollIndicator={false}
+          >
+            {selectedTransaction ? (
+              <ViewShot ref={receiptRef} options={{ format: "jpg", quality: 0.9 }}>
+                <ThermalReceipt
+                  transactionType={getTransactionType(selectedTransaction)}
+                  transactionId={selectedTransaction.id || selectedTransaction.transaction_id || 'N/A'}
+                  amount={selectedTransaction.amount || '0.00'}
+                  status={selectedTransaction.status || 'Unknown'}
+                  date={selectedTransaction.date || new Date().toLocaleDateString()}
+                  recipientInfo={getReceiptRecipientInfo(selectedTransaction)}
+                  senderInfo={getReceiptSenderInfo(selectedTransaction)}
+                  additionalInfo={[
+                    {
+                      label: 'Transaction Type',
+                      value: selectedTransaction.type?.charAt(0).toUpperCase() + selectedTransaction.type?.slice(1) || 'Unknown'
+                    }
+                  ]}
+                />
+              </ViewShot>
+            ) : (
+              <View style={styles.receiptLoadingContainer}>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={[styles.receiptLoadingText, { color: colors.textSecondary }]}>
+                  Loading receipt...
+                </Text>
+              </View>
+            )}
+          </ScrollView>
+
+          {/* Receipt Modal Actions */}
+          <View style={[styles.receiptModalActions, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
+            <TouchableOpacity
+              style={[styles.receiptModalActionButton, styles.receiptModalShareButtonLarge, { backgroundColor: colors.primary }]}
+              onPress={shareReceipt}
+              disabled={isCapturing}
+            >
+              {isCapturing ? (
+                <ActivityIndicator size={20} color="#FFFFFF" />
+              ) : (
+                <MaterialIcons name="share" size={20} color="#FFFFFF" />
+              )}
+              <Text style={styles.receiptModalActionButtonText}>
+                {isCapturing ? 'Preparing...' : 'Share Receipt'}
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.receiptModalActionButton, styles.receiptModalCloseButtonLarge, { borderColor: colors.border }]}
+              onPress={closeReceiptModal}
+            >
+              <MaterialIcons name="close" size={20} color={colors.text} />
+              <Text style={[styles.receiptModalActionButtonText, { color: colors.text }]}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
 
       {/* Date Filter Modal */}
       <DateFilterModal
@@ -989,6 +1312,83 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 14,
     marginLeft: 8,
+  },
+  // Receipt Modal Styles
+  receiptModalContainer: {
+    flex: 1,
+  },
+  receiptModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'ios' ? 44 : 40,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+  },
+  receiptModalCloseButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  receiptModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    flex: 1,
+    textAlign: 'center',
+  },
+  receiptModalShareButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  receiptModalContent: {
+    flex: 1,
+  },
+  receiptModalContentContainer: {
+    padding: 20,
+  },
+  receiptModalActions: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    gap: 12,
+    borderTopWidth: 1,
+  },
+  receiptModalActionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  receiptModalShareButtonLarge: {
+    backgroundColor: '#007AFF',
+  },
+  receiptModalCloseButtonLarge: {
+    borderWidth: 1,
+  },
+  receiptModalActionButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  receiptLoadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  receiptLoadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    textAlign: 'center',
   },
 });
 

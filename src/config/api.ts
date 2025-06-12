@@ -3,7 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
 // Production Base URL
-export const BASE_URL = 'https://hoopaywallet.com';
+export const BASE_URL = 'https://a0b0-102-217-123-227.ngrok-free.app';
 
 // Debug flag
 const DEBUG = __DEV__;

@@ -467,7 +467,7 @@ export const authService = {
   },
 
   /**
-   * Forgot password - send reset email
+   * Forgot password - send reset email (Legacy method)
    * @param {string} email - User email
    * @returns {Promise<Object>} Reset response
    */
@@ -502,6 +502,281 @@ export const authService = {
         return {
           success: false,
           message: error.response.data.message || 'Failed to send reset email'
+        };
+      }
+      
+      return {
+        success: false,
+        message: error.message || 'Network error occurred'
+      };
+    }
+  },
+
+  /**
+   * Comprehensive Password Reset System
+   */
+
+  /**
+   * Step 1: Request password reset - Send verification code to email
+   * @param {string} email - User email
+   * @returns {Promise<Object>} Reset request response
+   */
+  requestPasswordReset: async (email) => {
+    try {
+      console.log('AuthService.requestPasswordReset: Requesting reset for:', email);
+      
+      const response = await api.post(ENDPOINTS.FORGOT_PASSWORD.REQUEST, {
+        email
+      });
+      
+      console.log('AuthService.requestPasswordReset: API response received:', {
+        success: response.data.success,
+        message: response.data.message,
+        nextStep: response.data.data?.next_step
+      });
+      
+      if (response.data.success) {
+        return {
+          success: true,
+          email: response.data.data?.email || email,
+          message: response.data.message || 'Password reset code sent to your email',
+          expiresInMinutes: response.data.data?.expires_in_minutes || 30,
+          nextStep: response.data.data?.next_step || 'verify_code'
+        };
+      } else {
+        return {
+          success: false,
+          message: response.data.message || 'Failed to send reset code',
+          errors: response.data.errors
+        };
+      }
+    } catch (error) {
+      console.error('AuthService.requestPasswordReset: Error occurred:', error);
+      
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        return {
+          success: false,
+          message: errorData.message || 'Failed to send reset code',
+          errors: errorData.errors
+        };
+      }
+      
+      return {
+        success: false,
+        message: error.message || 'Network error occurred'
+      };
+    }
+  },
+
+  /**
+   * Step 2: Verify password reset code
+   * @param {string} email - User email
+   * @param {string} code - 6-digit verification code
+   * @returns {Promise<Object>} Verification response
+   */
+  verifyPasswordResetCode: async (email, code) => {
+    try {
+      console.log('AuthService.verifyPasswordResetCode: Verifying code for:', email);
+      
+      const response = await api.post(ENDPOINTS.FORGOT_PASSWORD.VERIFY, {
+        email,
+        code
+      });
+      
+      console.log('AuthService.verifyPasswordResetCode: API response received:', {
+        success: response.data.success,
+        message: response.data.message,
+        hasResetToken: !!response.data.data?.reset_token
+      });
+      
+      if (response.data.success) {
+        return {
+          success: true,
+          email: response.data.data?.email || email,
+          resetToken: response.data.data?.reset_token,
+          message: response.data.message || 'Code verified successfully',
+          expiresInMinutes: response.data.data?.expires_in_minutes || 15,
+          nextStep: response.data.data?.next_step || 'reset_password'
+        };
+      } else {
+        return {
+          success: false,
+          message: response.data.message || 'Invalid or expired code',
+          errors: response.data.errors
+        };
+      }
+    } catch (error) {
+      console.error('AuthService.verifyPasswordResetCode: Error occurred:', error);
+      
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        return {
+          success: false,
+          message: errorData.message || 'Invalid or expired code',
+          errors: errorData.errors
+        };
+      }
+      
+      return {
+        success: false,
+        message: error.message || 'Network error occurred'
+      };
+    }
+  },
+
+  /**
+   * Step 3: Complete password reset with new password
+   * @param {string} email - User email
+   * @param {string} resetToken - Reset token from verification step
+   * @param {string} password - New password
+   * @param {string} passwordConfirmation - Password confirmation
+   * @returns {Promise<Object>} Reset completion response
+   */
+  completePasswordReset: async (email, resetToken, password, passwordConfirmation) => {
+    try {
+      console.log('AuthService.completePasswordReset: Completing reset for:', email);
+      
+      const response = await api.post(ENDPOINTS.FORGOT_PASSWORD.COMPLETE, {
+        email,
+        reset_token: resetToken,
+        password,
+        password_confirmation: passwordConfirmation
+      });
+      
+      console.log('AuthService.completePasswordReset: API response received:', {
+        success: response.data.success,
+        message: response.data.message
+      });
+      
+      if (response.data.success) {
+        return {
+          success: true,
+          email: response.data.data?.email || email,
+          message: response.data.message || 'Password reset successfully',
+          nextStep: response.data.data?.next_step || 'login'
+        };
+      } else {
+        return {
+          success: false,
+          message: response.data.message || 'Failed to reset password',
+          errors: response.data.errors
+        };
+      }
+    } catch (error) {
+      console.error('AuthService.completePasswordReset: Error occurred:', error);
+      
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        return {
+          success: false,
+          message: errorData.message || 'Failed to reset password',
+          errors: errorData.errors
+        };
+      }
+      
+      return {
+        success: false,
+        message: error.message || 'Network error occurred'
+      };
+    }
+  },
+
+  /**
+   * Resend password reset code
+   * @param {string} email - User email
+   * @returns {Promise<Object>} Resend response
+   */
+  resendPasswordResetCode: async (email) => {
+    try {
+      console.log('AuthService.resendPasswordResetCode: Resending code for:', email);
+      
+      const response = await api.post(ENDPOINTS.FORGOT_PASSWORD.RESEND, {
+        email
+      });
+      
+      console.log('AuthService.resendPasswordResetCode: API response received:', {
+        success: response.data.success,
+        message: response.data.message
+      });
+      
+      if (response.data.success) {
+        return {
+          success: true,
+          email: response.data.data?.email || email,
+          message: response.data.message || 'New password reset code sent',
+          expiresInMinutes: response.data.data?.expires_in_minutes || 30
+        };
+      } else {
+        return {
+          success: false,
+          message: response.data.message || 'Failed to resend reset code',
+          errors: response.data.errors
+        };
+      }
+    } catch (error) {
+      console.error('AuthService.resendPasswordResetCode: Error occurred:', error);
+      
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        return {
+          success: false,
+          message: errorData.message || 'Failed to resend reset code',
+          errors: errorData.errors
+        };
+      }
+      
+      return {
+        success: false,
+        message: error.message || 'Network error occurred'
+      };
+    }
+  },
+
+  /**
+   * Check password reset status
+   * @param {string} email - User email
+   * @returns {Promise<Object>} Status response
+   */
+  checkPasswordResetStatus: async (email) => {
+    try {
+      console.log('AuthService.checkPasswordResetStatus: Checking status for:', email);
+      
+      const response = await api.get(ENDPOINTS.FORGOT_PASSWORD.STATUS, {
+        params: { email }
+      });
+      
+      console.log('AuthService.checkPasswordResetStatus: API response received:', {
+        success: response.data.success,
+        hasActiveReset: response.data.data?.has_active_reset
+      });
+      
+      if (response.data.success) {
+        return {
+          success: true,
+          email: response.data.data?.email || email,
+          hasActiveReset: response.data.data?.has_active_reset || false,
+          canRequestNew: response.data.data?.can_request_new || true,
+          nextStep: response.data.data?.next_step || 'request_reset',
+          expiresAt: response.data.data?.expires_at,
+          expiresInMinutes: response.data.data?.expires_in_minutes
+        };
+      } else {
+        return {
+          success: false,
+          message: response.data.message || 'Failed to check reset status',
+          errors: response.data.errors
+        };
+      }
+    } catch (error) {
+      console.error('AuthService.checkPasswordResetStatus: Error occurred:', error);
+      
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        return {
+          success: false,
+          message: errorData.message || 'Failed to check reset status',
+          errors: errorData.errors
         };
       }
       

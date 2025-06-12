@@ -102,13 +102,26 @@ class BiometricAuthService {
         throw new Error('Biometric authentication is not available on this device');
       }
 
+      // Validate user credentials
+      if (!userCredentials || !userCredentials.email) {
+        throw new Error('Valid user credentials are required to enable biometric authentication');
+      }
+      
+      // For authenticated sessions, we don't need to store the actual password
+      // if the user is already authenticated with a valid session token
+      const isAuthenticatedSession = userCredentials.authMethod === 'authenticated-session' && userCredentials.sessionToken;
+      
+      if (!isAuthenticatedSession && !userCredentials.password) {
+        throw new Error('Password is required for biometric authentication setup');
+      }
+
       // Authenticate user first to ensure they can use biometrics
       const biometricName = await this.getBiometricDisplayName();
       console.log('Setting up biometric auth with:', biometricName);
       
       const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: 'Set up biometric authentication',
-        subtitle: `Use your ${biometricName} to enable quick sign in`,
+        promptMessage: `Enable ${biometricName}`,
+        subtitle: `Use your ${biometricName} to set up quick sign in`,
         cancelLabel: 'Cancel',
         disableDeviceFallback: false,
         fallbackLabel: 'Cancel Setup',
@@ -117,10 +130,28 @@ class BiometricAuthService {
       console.log('Biometric setup result:', result);
       
       if (result.success) {
-        // Store user credentials securely
+        // Store user credentials securely with full user data for local authentication
+        const credentialsToStore = {
+          email: userCredentials.email,
+          password: isAuthenticatedSession ? 'session-based' : userCredentials.password,
+          setupDate: new Date().toISOString(),
+          authMethod: userCredentials.authMethod || 'password',
+          sessionBased: !!isAuthenticatedSession, // Ensure it's a boolean
+          sessionToken: isAuthenticatedSession ? userCredentials.sessionToken : null,
+          // Store user data locally for offline authentication
+          localUserData: {
+            id: userCredentials.id || userCredentials.user_id,
+            email: userCredentials.email,
+            name: userCredentials.name || userCredentials.username || 'User',
+            // Store any additional user data needed for local authentication
+            setupDevice: new Date().toISOString(),
+            lastUsed: new Date().toISOString()
+          }
+        };
+
         await SecureStore.setItemAsync(
           this.USER_CREDENTIALS_KEY,
-          JSON.stringify(userCredentials)
+          JSON.stringify(credentialsToStore)
         );
         
         // Enable biometric flag
@@ -129,7 +160,7 @@ class BiometricAuthService {
         
         return {
           success: true,
-          message: 'Biometric authentication enabled successfully',
+          message: `${biometricName} authentication enabled successfully`,
         };
       } else {
         let errorMessage = 'Biometric setup failed';
@@ -140,6 +171,10 @@ class BiometricAuthService {
           errorMessage = 'User cancelled biometric setup';
         } else if (result.error === 'biometric_unknown_error') {
           errorMessage = 'Unknown biometric error occurred during setup';
+        } else if (result.error === 'not_available') {
+          errorMessage = 'Biometric authentication is not available';
+        } else if (result.error === 'not_enrolled') {
+          errorMessage = 'No biometric authentication is enrolled on this device';
         }
         
         console.log('Biometric setup failed:', errorMessage);
@@ -148,6 +183,50 @@ class BiometricAuthService {
     } catch (error) {
       console.error('Error enabling biometric auth:', error);
       throw new Error(error.message || 'Failed to enable biometric authentication');
+    }
+  }
+
+  // Update session token in biometric credentials (for post-login updates)
+  async updateSessionToken(newToken, userEmail) {
+    try {
+      const isEnabled = await this.isBiometricEnabled();
+      if (!isEnabled) {
+        console.log('Biometric not enabled, skipping session token update');
+        return { success: false, message: 'Biometric not enabled' };
+      }
+
+      const credentialsJson = await SecureStore.getItemAsync(this.USER_CREDENTIALS_KEY);
+      if (credentialsJson) {
+        const credentials = JSON.parse(credentialsJson);
+        
+        // Only update if this is a session-based credential for the same user
+        if (credentials.sessionBased && credentials.email === userEmail) {
+          credentials.sessionToken = newToken;
+          credentials.setupDate = new Date().toISOString(); // Update setup date
+          
+          // Update last used timestamp for local user data
+          if (credentials.localUserData) {
+            credentials.localUserData.lastUsed = new Date().toISOString();
+          }
+          
+          await SecureStore.setItemAsync(
+            this.USER_CREDENTIALS_KEY,
+            JSON.stringify(credentials)
+          );
+          
+          console.log('Biometric session token updated successfully');
+          return { success: true, message: 'Session token updated' };
+        } else {
+          console.log('Biometric credentials not session-based or different user, no update needed');
+          return { success: false, message: 'Not applicable for this credential type' };
+        }
+      } else {
+        console.log('No biometric credentials found to update');
+        return { success: false, message: 'No credentials found' };
+      }
+    } catch (error) {
+      console.error('Error updating biometric session token:', error);
+      return { success: false, message: 'Failed to update session token' };
     }
   }
 
@@ -208,6 +287,39 @@ class BiometricAuthService {
         
         if (credentialsJson) {
           const credentials = JSON.parse(credentialsJson);
+          
+          // For session-based auth, use local user data stored in credentials
+          if (credentials.sessionBased) {
+            console.log('Using local authentication with stored user data');
+            
+            // Check if we have local user data
+            if (!credentials.localUserData) {
+              console.log('No local user data found in credentials - need fresh login');
+              
+              return {
+                success: false,
+                error: 'Please log in with your password to restore biometric authentication.',
+                fallbackToPassword: true,
+                sessionExpired: true,
+              };
+            }
+            
+            // Update last used timestamp
+            credentials.localUserData.lastUsed = new Date().toISOString();
+            
+            // Store updated credentials back
+            try {
+              await SecureStore.setItemAsync(
+                this.USER_CREDENTIALS_KEY,
+                JSON.stringify(credentials)
+              );
+            } catch (updateError) {
+              console.warn('Failed to update credentials timestamp:', updateError);
+            }
+            
+            console.log('Local authentication successful with user:', credentials.localUserData.email);
+          }
+          
           return {
             success: true,
             userCredentials: credentials,

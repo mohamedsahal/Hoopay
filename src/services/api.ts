@@ -3,7 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { ENDPOINTS } from '../config/apiConfig';
 
-// API URLs configuration - Production URL
+// Base URLs
 const API_URL = 'https://hoopaywallet.com';  // Base URL without /api
   
 // Add /api as a path prefix to avoid double-inclusion in URLs

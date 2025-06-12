@@ -2,8 +2,7 @@ import * as SecureStore from 'expo-secure-store';
 import axios from 'axios';
 import api from './api';
 
-// Use the same API configuration as in api.ts
-// We'll primarily use the api instance imported above, but keep this for backwards compatibility
+// API Configuration
 const API_BASE_URL = 'https://hoopaywallet.com/api';
 
 class AccountService {

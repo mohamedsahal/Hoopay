@@ -35,6 +35,7 @@ export type AuthStackParamList = {
   Signup: undefined;
   EmailVerification: undefined;
   TwoFactorChallenge: { email: string };
+  ForgotPassword: undefined;
 };
 
 export type RootStackParamList = {
@@ -72,6 +73,7 @@ export type RootStackParamList = {
   TwoFactorSetup: undefined;
   TwoFactorManagement: undefined;
   ChangePassword: undefined;
+  KycVerification: undefined;
   PostDetail: { postId: number };
 };
 

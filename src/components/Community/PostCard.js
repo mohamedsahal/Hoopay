@@ -7,15 +7,21 @@ import UserAvatar from './UserAvatar';
 import { formatNumber } from '../../utils/numberUtils';
 import VerificationBadge from '../VerificationBadge';
 import kycService from '../../services/kycService';
+import ThreeDotsMenu from './OptionsMenu';
+import CommentsPreview from './CommentsPreview';
 
 const PostCard = ({ 
   post, 
+  currentUser,
   expandedPosts, 
   onToggleExpansion, 
   onLike, 
   onImagePress, 
   onNavigate,
-  onUserPress 
+  onUserPress,
+  onDelete,
+  onCommentChange,
+  showComments = true
 }) => {
   // Use fallback colors and theme if context is not available
   let colors;
@@ -90,6 +96,22 @@ const PostCard = ({
             <Text style={[styles.postTime, { color: colors.textSecondary }]}>{post.created_at}</Text>
           </View>
         </TouchableOpacity>
+        
+        {/* Three dots menu for post options */}
+        <ThreeDotsMenu
+          currentUser={currentUser}
+          itemOwner={post.user}
+          options={[
+            {
+              title: 'Delete Post',
+              icon: 'delete',
+              destructive: true,
+              onPress: () => onDelete && onDelete(post.id)
+            }
+          ]}
+          size={22}
+          color={colors.textSecondary}
+        />
       </View>
 
       {renderExpandableText(post.title, post.id, true)}
@@ -133,6 +155,17 @@ const PostCard = ({
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Comments Preview Section */}
+      {showComments && post.comments && post.comments.length > 0 && (
+        <CommentsPreview
+          postId={post.id}
+          initialComments={post.comments}
+          currentUser={currentUser}
+          onCommentChange={onCommentChange}
+          maxComments={2}
+        />
+      )}
     </View>
   );
 };
@@ -161,6 +194,7 @@ const styles = {
   postHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     marginBottom: 12,
   },

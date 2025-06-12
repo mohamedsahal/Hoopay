@@ -29,6 +29,79 @@ interface AuthProviderProps {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+// Sanitize user data to ensure it's JSON serializable
+const sanitizeUserData = (userData: User | null | undefined): User => {
+  try {
+    // Handle null or undefined input
+    if (!userData || typeof userData !== 'object') {
+      console.error('Invalid user data provided to sanitizeUserData:', userData);
+      throw new Error('Invalid user data: cannot sanitize null or undefined');
+    }
+
+    // Validate essential properties exist
+    if (!userData.id || !userData.email) {
+      console.error('Missing essential user properties:', userData);
+      throw new Error('Invalid user data: missing id or email');
+    }
+
+    // Create a clean copy with only serializable data
+    const sanitized: User = {
+      id: userData.id,
+      name: userData.name || '',
+      email: userData.email,
+      email_verified: userData.email_verified || false,
+    };
+
+    // Add other properties that are serializable
+    Object.keys(userData).forEach(key => {
+      if (key !== 'id' && key !== 'name' && key !== 'email' && key !== 'email_verified') {
+        const value = userData[key];
+        
+        // Only include primitive values and simple objects
+        if (value !== null && value !== undefined) {
+          const type = typeof value;
+          if (type === 'string' || type === 'number' || type === 'boolean') {
+            sanitized[key] = value;
+          } else if (type === 'object' && !Array.isArray(value)) {
+            // For objects, try to serialize them to check if they're valid
+            try {
+              JSON.stringify(value);
+              sanitized[key] = value;
+            } catch (e) {
+              console.warn(`Skipping non-serializable property: ${key}`);
+            }
+          } else if (Array.isArray(value)) {
+            // For arrays, check if they're serializable
+            try {
+              JSON.stringify(value);
+              sanitized[key] = value;
+            } catch (e) {
+              console.warn(`Skipping non-serializable array property: ${key}`);
+            }
+          }
+        }
+      }
+    });
+
+    return sanitized;
+  } catch (error) {
+    console.error('Error sanitizing user data:', error);
+    
+    // If we have at least some basic user data, try to create a minimal fallback
+    if (userData && userData.id && userData.email) {
+      return {
+        id: userData.id,
+        name: userData.name || '',
+        email: userData.email,
+        email_verified: userData.email_verified || false,
+      };
+    }
+    
+    // If we can't create a fallback, throw the error up
+    throw error;
+  }
+};
+
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -68,14 +141,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (newToken: string, userData: User): Promise<void> => {
     try {
+      // Sanitize user data to ensure it's JSON serializable
+      const sanitizedUserData = sanitizeUserData(userData);
+      
       await Promise.all([
         SecureStore.setItemAsync('auth_token', newToken),
-        SecureStore.setItemAsync('userData', JSON.stringify(userData))
+        SecureStore.setItemAsync('userData', JSON.stringify(sanitizedUserData))
       ]);
       setToken(newToken);
-      setUser(userData);
+      setUser(sanitizedUserData);
     } catch (error) {
       console.error('Failed to save auth state:', error);
+      console.error('User data that failed to serialize:', userData);
       throw error;
     }
   };
@@ -87,10 +164,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           await SecureStore.deleteItemAsync('auth_token');
           await SecureStore.deleteItemAsync('userData');
           
+                  // Note: Biometric credentials are preserved during normal logout
+        // They will be validated and cleared only if session becomes invalid
+        console.log('Logout: Preserving biometric credentials for next login');
+          
           // Set flag to indicate user should go to login screen instead of onboarding
           await SecureStore.setItemAsync('skipOnboarding', 'true');
           
           setUser(null);
+          setToken(null);
         } catch (error) {
           console.error('Logout error:', error);
         }
@@ -126,11 +208,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const updateUser = async (userData: User): Promise<void> => {
     try {
       if (userData) {
-        await SecureStore.setItemAsync('userData', JSON.stringify(userData));
-        setUser(userData);
+        // Sanitize user data to ensure it's JSON serializable
+        const sanitizedUserData = sanitizeUserData(userData);
+        
+        await SecureStore.setItemAsync('userData', JSON.stringify(sanitizedUserData));
+        setUser(sanitizedUserData);
       }
     } catch (error) {
       console.error('Failed to update user data:', error);
+      console.error('User data that failed to serialize:', userData);
       throw error;
     }
   };

@@ -3,10 +3,8 @@
  * This script tests various endpoints to ensure the API is working correctly
  */
 
-const BASE_URL = 'https://hoopaywallet.com/api/v1';
-
-// Test configuration
-const testConfig = {
+const CONFIG = {
+  BASE_URL: 'https://hoopaywallet.com/api/v1',
   // You'll need to provide valid credentials for testing
   testEmail: '', // Remove default test email to prevent 404 errors
   testPassword: 'testPassword123',
@@ -15,7 +13,7 @@ const testConfig = {
 
 // Helper function to make API requests
 async function makeRequest(endpoint, options = {}) {
-  const url = `${BASE_URL}${endpoint}`;
+  const url = `${CONFIG.BASE_URL}${endpoint}`;
   
   try {
     const response = await fetch(url, {
@@ -44,7 +42,7 @@ async function makeRequest(endpoint, options = {}) {
 // Test functions for different endpoints
 const apiTests = {
   // Export testConfig so it can be updated from outside
-  testConfig,
+  testConfig: CONFIG,
   
   // Authentication Tests
   async testLogin() {
@@ -52,15 +50,15 @@ const apiTests = {
     const result = await makeRequest('/login', {
       method: 'POST',
       body: JSON.stringify({
-        email: testConfig.testEmail,
-        password: testConfig.testPassword,
+        email: CONFIG.testEmail,
+        password: CONFIG.testPassword,
       }),
     });
     
     if (result.success && result.data.success) {
-      testConfig.authToken = result.data.data.token;
+      CONFIG.authToken = result.data.data.token;
       console.log('✅ Login successful!');
-      console.log('   Token:', testConfig.authToken.substring(0, 20) + '...');
+      console.log('   Token:', CONFIG.authToken.substring(0, 20) + '...');
     } else {
       console.log('❌ Login failed:', result.data?.message || result.error);
     }
@@ -95,7 +93,7 @@ const apiTests = {
   async testGetUserProfile() {
     console.log('\n📝 Testing Get User Profile Endpoint...');
     
-    if (!testConfig.authToken) {
+    if (!CONFIG.authToken) {
       console.log('⚠️  No auth token available. Skipping...');
       return;
     }
@@ -103,7 +101,7 @@ const apiTests = {
     const result = await makeRequest('/user', {
       method: 'GET',
       headers: {
-        Authorization: `Bearer ${testConfig.authToken}`,
+        Authorization: `Bearer ${CONFIG.authToken}`,
       },
     });
     
@@ -122,7 +120,7 @@ const apiTests = {
   async testGetWallets() {
     console.log('\n📝 Testing Get Wallets Endpoint...');
     
-    if (!testConfig.authToken) {
+    if (!CONFIG.authToken) {
       console.log('⚠️  No auth token available. Skipping...');
       return;
     }
@@ -130,7 +128,7 @@ const apiTests = {
     const result = await makeRequest('/wallets', {
       method: 'GET',
       headers: {
-        Authorization: `Bearer ${testConfig.authToken}`,
+        Authorization: `Bearer ${CONFIG.authToken}`,
       },
     });
     
@@ -151,7 +149,7 @@ const apiTests = {
   async testGetTransactions() {
     console.log('\n📝 Testing Get Transactions Endpoint...');
     
-    if (!testConfig.authToken) {
+    if (!CONFIG.authToken) {
       console.log('⚠️  No auth token available. Skipping...');
       return;
     }
@@ -159,7 +157,7 @@ const apiTests = {
     const result = await makeRequest('/transactions', {
       method: 'GET',
       headers: {
-        Authorization: `Bearer ${testConfig.authToken}`,
+        Authorization: `Bearer ${CONFIG.authToken}`,
       },
     });
     
@@ -177,7 +175,7 @@ const apiTests = {
   async testGetCurrencies() {
     console.log('\n📝 Testing Get Currencies Endpoint...');
     
-    if (!testConfig.authToken) {
+    if (!CONFIG.authToken) {
       console.log('⚠️  No auth token available. Skipping...');
       return;
     }
@@ -185,7 +183,7 @@ const apiTests = {
     const result = await makeRequest('/master/currencies', {
       method: 'GET',
       headers: {
-        Authorization: `Bearer ${testConfig.authToken}`,
+        Authorization: `Bearer ${CONFIG.authToken}`,
       },
     });
     
@@ -204,7 +202,7 @@ const apiTests = {
   async testGetKYCStatus() {
     console.log('\n📝 Testing Get KYC Status Endpoint...');
     
-    if (!testConfig.authToken) {
+    if (!CONFIG.authToken) {
       console.log('⚠️  No auth token available. Skipping...');
       return;
     }
@@ -212,7 +210,7 @@ const apiTests = {
     const result = await makeRequest('/mobile/kyc/status', {
       method: 'GET',
       headers: {
-        Authorization: `Bearer ${testConfig.authToken}`,
+        Authorization: `Bearer ${CONFIG.authToken}`,
       },
     });
     
@@ -232,7 +230,7 @@ const apiTests = {
   async testSubmitKYCPersonalInfo() {
     console.log('\n📝 Testing Submit KYC Personal Info Endpoint...');
     
-    if (!testConfig.authToken) {
+    if (!CONFIG.authToken) {
       console.log('⚠️  No auth token available. Skipping...');
       return;
     }
@@ -254,7 +252,7 @@ const apiTests = {
     const result = await makeRequest('/mobile/kyc/personal-info', {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${testConfig.authToken}`,
+        Authorization: `Bearer ${CONFIG.authToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(personalInfo),
@@ -278,7 +276,7 @@ const apiTests = {
   async testGetVerificationLimits() {
     console.log('\n📝 Testing Get Verification Limits Endpoint...');
     
-    if (!testConfig.authToken) {
+    if (!CONFIG.authToken) {
       console.log('⚠️  No auth token available. Skipping...');
       return;
     }
@@ -286,7 +284,7 @@ const apiTests = {
     const result = await makeRequest('/mobile/kyc/verification-limits?level=basic', {
       method: 'GET',
       headers: {
-        Authorization: `Bearer ${testConfig.authToken}`,
+        Authorization: `Bearer ${CONFIG.authToken}`,
       },
     });
     
@@ -307,7 +305,7 @@ const apiTests = {
   async testCheckTransactionLimit() {
     console.log('\n📝 Testing Check Transaction Limit Endpoint...');
     
-    if (!testConfig.authToken) {
+    if (!CONFIG.authToken) {
       console.log('⚠️  No auth token available. Skipping...');
       return;
     }
@@ -320,7 +318,7 @@ const apiTests = {
     const result = await makeRequest('/mobile/kyc/check-transaction-limit', {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${testConfig.authToken}`,
+        Authorization: `Bearer ${CONFIG.authToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(transactionData),
@@ -346,7 +344,7 @@ const apiTests = {
   async testGetReferrals() {
     console.log('\n📝 Testing Get Referrals Endpoint...');
     
-    if (!testConfig.authToken) {
+    if (!CONFIG.authToken) {
       console.log('⚠️  No auth token available. Skipping...');
       return;
     }
@@ -354,7 +352,7 @@ const apiTests = {
     const result = await makeRequest('/referrals', {
       method: 'GET',
       headers: {
-        Authorization: `Bearer ${testConfig.authToken}`,
+        Authorization: `Bearer ${CONFIG.authToken}`,
       },
     });
     
@@ -374,7 +372,7 @@ const apiTests = {
   async testGetAppConfig() {
     console.log('\n📝 Testing Get App Config Endpoint...');
     
-    if (!testConfig.authToken) {
+    if (!CONFIG.authToken) {
       console.log('⚠️  No auth token available. Skipping...');
       return;
     }
@@ -382,7 +380,7 @@ const apiTests = {
     const result = await makeRequest('/app/config', {
       method: 'GET',
       headers: {
-        Authorization: `Bearer ${testConfig.authToken}`,
+        Authorization: `Bearer ${CONFIG.authToken}`,
       },
     });
     
@@ -422,7 +420,7 @@ const apiTests = {
 async function runAllTests() {
   console.log('🚀 Starting Hoopay API Tests...');
   console.log('================================');
-  console.log('Base URL:', BASE_URL);
+  console.log('Base URL:', CONFIG.BASE_URL);
   console.log('================================');
 
   const testResults = {

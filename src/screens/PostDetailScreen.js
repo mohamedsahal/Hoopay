@@ -13,17 +13,24 @@ import {
   KeyboardAvoidingView,
   Platform
 } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import Colors from '../constants/Colors';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 import { BASE_URL, ENDPOINTS, getHeaders } from '../config/apiConfig';
+import ThreeDotsMenu from '../components/Community/OptionsMenu';
+import CommentCard from '../components/Community/CommentCard';
 
 const PostDetailScreen = ({ navigation, route }) => {
   const { postId } = route.params;
   const insets = useSafeAreaInsets();
+
+  // Use AuthContext for current user
+  const { user: currentUser, isAuthenticated } = useAuth();
 
   // Use fallback colors and theme if context is not available
   let colors, isDarkMode;
@@ -165,6 +172,95 @@ const PostDetailScreen = ({ navigation, route }) => {
     }
   };
 
+  const deletePost = async (postId) => {
+    try {
+      Alert.alert(
+        'Delete Post',
+        'Are you sure you want to delete this post? This action cannot be undone.',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              const token = await getAuthToken();
+              // Use direct URL construction like the working routes
+              const deleteEndpoint = `${BASE_URL}/mobile/discussions/${postId}`;
+              const response = await fetch(deleteEndpoint, {
+                method: 'DELETE',
+                headers: getHeaders(token),
+              });
+
+              const data = await response.json();
+
+              if (data.success) {
+                Alert.alert('Success', 'Post deleted successfully!', [
+                  {
+                    text: 'OK',
+                    onPress: () => navigation.goBack()
+                  }
+                ]);
+              } else {
+                Alert.alert('Error', data.error || 'Failed to delete post');
+              }
+            },
+          },
+        ]
+      );
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      Alert.alert('Error', 'Failed to delete post: ' + error.message);
+    }
+  };
+
+  const deleteComment = async (commentId) => {
+    try {
+      Alert.alert(
+        'Delete Comment',
+        'Are you sure you want to delete this comment? This action cannot be undone.',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              const token = await getAuthToken();
+              // Use direct URL construction matching the backend routes
+              const deleteEndpoint = `${BASE_URL}/mobile/discussions/comments/${commentId}`;
+              const response = await fetch(deleteEndpoint, {
+                method: 'DELETE',
+                headers: getHeaders(token),
+              });
+
+              const data = await response.json();
+
+              if (data.success) {
+                // Remove comment from state
+                setPost(prev => ({
+                  ...prev,
+                  comments: prev.comments.filter(comment => comment.id !== commentId),
+                  comments_count: prev.comments_count - 1
+                }));
+                Alert.alert('Success', 'Comment deleted successfully!');
+              } else {
+                Alert.alert('Error', data.error || 'Failed to delete comment');
+              }
+            },
+          },
+        ]
+      );
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      Alert.alert('Error', 'Failed to delete comment: ' + error.message);
+    }
+  };
+
   const toggleFollow = async (userId) => {
     try {
       const token = await getAuthToken();
@@ -222,6 +318,8 @@ const PostDetailScreen = ({ navigation, route }) => {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar style={isDarkMode ? "light" : "dark"} />
       
+
+      
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top || 30, backgroundColor: colors.headerBackground }]}>
         <TouchableOpacity 
@@ -259,16 +357,34 @@ const PostDetailScreen = ({ navigation, route }) => {
                 </View>
               </TouchableOpacity>
               
-              {!post.user.is_self && (
-                <TouchableOpacity 
-                  style={[styles.followButton, post.user.is_following && styles.followingButton]}
-                  onPress={() => toggleFollow(post.user.id)}
-                >
-                  <Text style={[styles.followButtonText, post.user.is_following && styles.followingButtonText]}>
-                    {post.user.is_following ? 'Following' : 'Follow'}
-                  </Text>
-                </TouchableOpacity>
-              )}
+              <View style={styles.postHeaderActions}>
+                {/* Three dots menu for post options */}
+                <ThreeDotsMenu
+                  currentUser={currentUser}
+                  itemOwner={post.user}
+                  options={[
+                    {
+                      title: 'Delete Post',
+                      icon: 'delete',
+                      destructive: true,
+                      onPress: () => deletePost(post.id)
+                    }
+                  ]}
+                  size={24}
+                  color={colors.textSecondary}
+                />
+                
+                {!post.user.is_self && (
+                  <TouchableOpacity 
+                    style={[styles.followButton, post.user.is_following && styles.followingButton]}
+                    onPress={() => toggleFollow(post.user.id)}
+                  >
+                    <Text style={[styles.followButtonText, post.user.is_following && styles.followingButtonText]}>
+                      {post.user.is_following ? 'Following' : 'Follow'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
 
             <Text style={[styles.postTitle, { color: colors.text }]}>{post.title}</Text>
@@ -302,29 +418,38 @@ const PostDetailScreen = ({ navigation, route }) => {
             
             {post.comments && post.comments.length > 0 ? (
               post.comments.map((comment) => (
-                <View key={comment.id} style={styles.commentItem}>
-                  <View style={styles.commentHeader}>
-                    <Image 
-                      source={comment.user.photo_path ? { uri: comment.user.photo_path } : require('../assets/images/profile.jpg')}
-                      style={styles.commentAvatar}
-                    />
-                    <View style={styles.commentUserInfo}>
-                      <Text style={[styles.commentUserName, { color: colors.text }]}>{comment.user.name}</Text>
-                      <Text style={[styles.commentTime, { color: colors.textSecondary }]}>{comment.created_at}</Text>
-                    </View>
-                  </View>
-                  
-                  <Text style={[styles.commentContent, { color: colors.textSecondary }]}>{comment.content}</Text>
-                  
-                  <TouchableOpacity 
-                    style={styles.commentLikeButton}
-                    onPress={() => toggleLike(comment.id, false)}
-                  >
-                    <Text style={[styles.commentLikeText, comment.is_liked && styles.likedText]}>
-                      {comment.is_liked ? '❤️' : '🤍'} {comment.likes_count}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+                <CommentCard
+                  key={comment.id}
+                  comment={comment}
+                  currentUser={currentUser}
+                  onLike={toggleLike}
+                  onDelete={async (commentId) => {
+                    try {
+                      const token = await getAuthToken();
+                      // Use the correct pattern like post delete
+                      const deleteEndpoint = `${BASE_URL}/mobile/discussions/comments/${commentId}`;
+                      const response = await fetch(deleteEndpoint, {
+                        method: 'DELETE',
+                        headers: getHeaders(token),
+                      });
+                      
+                      const data = await response.json();
+                      
+                      if (data.success) {
+                        setPost(prev => ({
+                          ...prev,
+                          comments: prev.comments.filter(c => c.id !== commentId),
+                          comments_count: prev.comments_count - 1
+                        }));
+                      } else {
+                        Alert.alert('Error', data.message || data.error || 'Failed to delete comment');
+                      }
+                    } catch (error) {
+                      console.error('Error deleting comment:', error);
+                      Alert.alert('Error', 'Failed to delete comment');
+                    }
+                  }}
+                />
               ))
             ) : (
               <Text style={[styles.noCommentsText, { color: colors.textSecondary }]}>
@@ -537,51 +662,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     color: Colors.text,
   },
-  commentItem: {
-    marginBottom: 15,
-    paddingBottom: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  commentHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  commentAvatar: {
-    width: 35,
-    height: 35,
-    borderRadius: 17.5,
-    marginRight: 10,
-  },
-  commentUserInfo: {
-    flex: 1,
-  },
-  commentUserName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.text,
-  },
-  commentTime: {
-    fontSize: 11,
-    color: Colors.textSecondary,
-    marginTop: 1,
-  },
-  commentContent: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: Colors.textSecondary,
-    marginBottom: 8,
-    marginLeft: 45,
-  },
-  commentLikeButton: {
-    alignSelf: 'flex-start',
-    marginLeft: 45,
-  },
-  commentLikeText: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-  },
+
   noCommentsText: {
     fontSize: 14,
     color: Colors.textSecondary,
@@ -622,6 +703,11 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
+  },
+  postHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
 });
 

@@ -37,6 +37,7 @@ import OnboardingScreen from './src/screens/OnboardingScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import SignupScreen from './src/screens/SignupScreen';
 import EmailVerificationScreen from './src/screens/EmailVerificationScreen';
+import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
 
 // Import Transfer screen
 import TransferScreen from './src/screens/TransferScreen';
@@ -143,6 +144,7 @@ function AuthNavigator() {
       <AuthStack.Screen name="Signup" component={SignupScreen} />
       <AuthStack.Screen name="EmailVerification" component={EmailVerificationScreen} />
       <AuthStack.Screen name="TwoFactorChallenge" component={TwoFactorChallengeScreen} />
+      <AuthStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
     </AuthStack.Navigator>
   );
 }
@@ -387,6 +389,15 @@ function RootNavigator() {
           <Stack.Screen name="DepositInstructions" component={DepositInstructionsScreen} />
           <Stack.Screen name="DepositVerification" component={DepositVerificationScreen} />
           <Stack.Screen name="DepositComplete" component={DepositCompleteScreen} />
+          
+          {/* KYC Verification - Available from anywhere in the app */}
+          <Stack.Screen 
+            name="KycVerification" 
+            component={UnifiedKycScreen}
+            options={{
+              gestureEnabled: true,
+            }}
+          />
         </>
       )}
     </Stack.Navigator>

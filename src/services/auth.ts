@@ -2,6 +2,7 @@ import api from './api';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { ENDPOINTS } from '../config/apiConfig';
+import { logTokenInfo } from '../utils/jwtUtils';
 
 declare const __DEV__: boolean;
 
@@ -71,7 +72,8 @@ class AuthService {
         
         if (token) {
           await this.setToken(token);
-          await SecureStore.setItemAsync('userData', JSON.stringify(user));
+          const sanitizedUser = this.sanitizeUserData(user);
+          await SecureStore.setItemAsync('userData', JSON.stringify(sanitizedUser));
         }
         
         return {
@@ -132,21 +134,13 @@ class AuthService {
           // Save the token in the proper format expected by the backend
           await this.setToken(token);
           
-          // Store the user data
-          await SecureStore.setItemAsync('userData', JSON.stringify(user));
+          // Store the user data with sanitization
+          const sanitizedUser = this.sanitizeUserData(user);
+          await SecureStore.setItemAsync('userData', JSON.stringify(sanitizedUser));
           
-          // Log token details for debugging in dev mode
+          // Log token details for debugging in dev mode using safe JWT utilities
           if (__DEV__) {
-            try {
-              const parts = token.split('.');
-              if (parts.length === 3) {
-                const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
-                console.log('JWT payload structure:', Object.keys(payload));
-                console.log('JWT expiration:', new Date(payload.exp * 1000).toISOString());
-              }
-            } catch (e) {
-              console.log('Could not parse token payload');
-            }
+            logTokenInfo(token, 'Login Token');
           }
           
           // Check if wallet information is included in the response
@@ -328,10 +322,100 @@ class AuthService {
     await SecureStore.setItemAsync('auth_token', token);
   }
 
+  // Public method for direct token setting (used by direct biometric auth)
+  async setAuthToken(token: string): Promise<void> {
+    return this.setToken(token);
+  }
+
   private async clearSession(): Promise<void> {
     this.token = null;
     await SecureStore.deleteItemAsync('auth_token');
     await SecureStore.deleteItemAsync('userData');
+    
+    // Note: Biometric credentials are preserved during normal logout
+    // They will be validated and cleared only if session becomes invalid
+    console.log('AuthService: Preserving biometric credentials for next login');
+  }
+
+  private sanitizeUserData(userData: any): User {
+    try {
+      // Handle null or undefined input
+      if (!userData || typeof userData !== 'object') {
+        console.error('Invalid user data provided to AuthService sanitizeUserData:', userData);
+        throw new Error('Invalid user data: cannot sanitize null or undefined');
+      }
+
+      // Validate essential properties exist
+      if (!userData.id || !userData.email) {
+        console.error('Missing essential user properties in AuthService:', userData);
+        throw new Error('Invalid user data: missing id or email');
+      }
+
+      // Create a clean copy with only serializable data
+      const sanitized: User = {
+        id: userData.id,
+        name: userData.name || '',
+        email: userData.email,
+        email_verified: userData.email_verified || false,
+        is_verified: userData.is_verified || false,
+        referral_code: userData.referral_code || '',
+        phone: userData.phone || undefined,
+      };
+
+      // Add other properties that are serializable (using proper type handling)
+      const additionalProps: Record<string, any> = {};
+      Object.keys(userData).forEach(key => {
+        if (key !== 'id' && key !== 'name' && key !== 'email' && key !== 'email_verified' && 
+            key !== 'is_verified' && key !== 'referral_code' && key !== 'phone') {
+          const value = userData[key];
+          
+          // Only include primitive values and simple objects
+          if (value !== null && value !== undefined) {
+            const type = typeof value;
+            if (type === 'string' || type === 'number' || type === 'boolean') {
+              additionalProps[key] = value;
+            } else if (type === 'object' && !Array.isArray(value)) {
+              // For objects, try to serialize them to check if they're valid
+              try {
+                JSON.stringify(value);
+                additionalProps[key] = value;
+              } catch (e) {
+                console.warn(`Skipping non-serializable property: ${key}`);
+              }
+            } else if (Array.isArray(value)) {
+              // For arrays, check if they're serializable
+              try {
+                JSON.stringify(value);
+                additionalProps[key] = value;
+              } catch (e) {
+                console.warn(`Skipping non-serializable array property: ${key}`);
+              }
+            }
+          }
+        }
+      });
+
+      // Merge additional properties with the base user object
+      return { ...sanitized, ...additionalProps };
+    } catch (error) {
+      console.error('Error sanitizing user data in AuthService:', error);
+      
+      // If we have at least some basic user data, try to create a minimal fallback
+      if (userData && userData.id && userData.email) {
+        return {
+          id: userData.id,
+          name: userData.name || '',
+          email: userData.email,
+          email_verified: userData.email_verified || false,
+          is_verified: userData.is_verified || false,
+          referral_code: userData.referral_code || '',
+          phone: userData.phone || undefined,
+        };
+      }
+      
+      // If we can't create a fallback, throw the error up
+      throw error;
+    }
   }
 
   async isAuthenticated(): Promise<boolean> {
@@ -359,9 +443,10 @@ class AuthService {
         
         if (directResponse.data.success && directResponse.data.data?.user) {
           const userData = directResponse.data.data.user;
-          // Store the user data for offline use
-          await SecureStore.setItemAsync('userData', JSON.stringify(userData));
-          return userData;
+          // Sanitize and store the user data for offline use
+          const sanitizedUserData = this.sanitizeUserData(userData);
+          await SecureStore.setItemAsync('userData', JSON.stringify(sanitizedUserData));
+          return sanitizedUserData;
         }
       } catch (error) {
         const directError = error as Error;
@@ -382,9 +467,10 @@ class AuthService {
         
         if (debugResponse.data.success && debugResponse.data.data?.user) {
           const userData = debugResponse.data.data.user;
-          // Store the user data for offline use
-          await SecureStore.setItemAsync('userData', JSON.stringify(userData));
-          return userData;
+          // Sanitize and store the user data for offline use
+          const sanitizedUserData = this.sanitizeUserData(userData);
+          await SecureStore.setItemAsync('userData', JSON.stringify(sanitizedUserData));
+          return sanitizedUserData;
         }
       } catch (debugError) {
         console.log('Debug endpoint failed, falling back to standard endpoint');
@@ -415,8 +501,12 @@ class AuthService {
       }
       
       if (userData) {
-        await SecureStore.setItemAsync('userData', JSON.stringify(userData));
-        return userData;
+        // Sanitize user data before storing to prevent serialization errors
+        const sanitizedUserData = this.sanitizeUserData(userData);
+        console.log('Storing sanitized user data:', sanitizedUserData);
+        
+        await SecureStore.setItemAsync('userData', JSON.stringify(sanitizedUserData));
+        return sanitizedUserData;
       }
       
       return null;
@@ -444,6 +534,78 @@ class AuthService {
     } catch (error) {
       console.error('Error getting stored email:', error);
       return null;
+    }
+  }
+
+  // Biometric authentication with local data
+  async loginWithBiometric(biometricCredentials: any): Promise<AuthResponse> {
+    try {
+      console.log('Starting biometric authentication with local data');
+      
+      // Use the local user data from biometric credentials
+      if (biometricCredentials.localUserData) {
+        const localUser = biometricCredentials.localUserData;
+        
+        // Ensure we have valid user data
+        if (!localUser.id || !localUser.email) {
+          console.error('Invalid local user data:', localUser);
+          return {
+            success: false,
+            message: 'Invalid biometric credentials. Please log in with your password to update biometric authentication.'
+          };
+        }
+        
+        // Create a user object from local data
+        const user: User = {
+          id: Number(localUser.id), // Ensure it's a number
+          name: localUser.name || 'User',
+          email: localUser.email,
+          email_verified: true, // Assume verified for local auth
+          is_verified: true,
+          referral_code: '', // Will be fetched later if needed
+          phone: localUser.phone || undefined
+        };
+        
+        console.log('Created user object for biometric auth:', user);
+        
+        // Store the user data for session continuity (use sanitized data)
+        const sanitizedUser = this.sanitizeUserData(user);
+        console.log('Sanitized user for storage:', sanitizedUser);
+        await SecureStore.setItemAsync('userData', JSON.stringify(sanitizedUser));
+        await SecureStore.setItemAsync('userEmail', user.email);
+        
+        // For session-based biometric auth, try to restore the session token
+        if (biometricCredentials.sessionBased && biometricCredentials.sessionToken) {
+          await this.setToken(biometricCredentials.sessionToken);
+          console.log('Session token restored from biometric credentials');
+        }
+        
+        // Mark as successful biometric authentication
+        console.log('Biometric authentication successful with local data');
+        
+        console.log('Returning user object from loginWithBiometric:', user);
+        
+        return {
+          success: true,
+          user: user,
+          token: biometricCredentials.sessionToken || null,
+          isVerified: true,
+          lastLoginAt: new Date().toISOString()
+        };
+      }
+      
+      // Fallback for old-style credentials without local data
+      return {
+        success: false,
+        message: 'Please log in with your password to update biometric authentication'
+      };
+      
+    } catch (error: any) {
+      console.error('Biometric authentication error:', error);
+      return {
+        success: false,
+        message: error.message || 'Biometric authentication failed'
+      };
     }
   }
 
@@ -478,7 +640,8 @@ class AuthService {
         // If we got a token back, save the session
         if (user && token) {
           await this.setToken(token);
-          await SecureStore.setItemAsync('userData', JSON.stringify(user));
+          const sanitizedUser = this.sanitizeUserData(user);
+          await SecureStore.setItemAsync('userData', JSON.stringify(sanitizedUser));
         }
         
         return {

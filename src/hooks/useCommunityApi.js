@@ -409,6 +409,82 @@ export const useCommunityApi = () => {
     }
   };
 
+  // Delete post
+  const deletePost = async (postId) => {
+    try {
+      console.log('=== DELETE POST DEBUG ===');
+      const token = await getAuthToken();
+      console.log('Token for delete post:', !!token);
+      
+      if (!token) {
+        Alert.alert('Error', 'Please login to delete posts');
+        return { success: false };
+      }
+      
+      // Use direct URL construction matching the backend routes
+      const deleteUrl = `${BASE_URL}/mobile/discussions/${postId}`;
+      console.log('Delete post URL:', deleteUrl);
+      
+      const response = await fetch(deleteUrl, {
+        method: 'DELETE',
+        headers: getHeaders(token),
+      });
+
+      const data = await response.json();
+      console.log('Delete post response:', data);
+
+      if (data.success) {
+        Alert.alert('Success', 'Post deleted successfully!');
+        return { success: true };
+      } else {
+        Alert.alert('Error', data.error || 'Failed to delete post');
+        return { success: false };
+      }
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      Alert.alert('Error', 'Failed to delete post: ' + error.message);
+      return { success: false };
+    }
+  };
+
+  // Delete comment
+  const deleteComment = async (commentId) => {
+    try {
+      console.log('=== DELETE COMMENT DEBUG ===');
+      const token = await getAuthToken();
+      console.log('Token for delete comment:', !!token);
+      
+      if (!token) {
+        Alert.alert('Error', 'Please login to delete comments');
+        return { success: false };
+      }
+      
+      // Use direct URL construction matching the backend routes
+      const deleteUrl = `${BASE_URL}/mobile/discussions/comments/${commentId}`;
+      console.log('Delete comment URL:', deleteUrl);
+      
+      const response = await fetch(deleteUrl, {
+        method: 'DELETE',
+        headers: getHeaders(token),
+      });
+
+      const data = await response.json();
+      console.log('Delete comment response:', data);
+
+      if (data.success) {
+        Alert.alert('Success', 'Comment deleted successfully!');
+        return { success: true };
+      } else {
+        Alert.alert('Error', data.error || 'Failed to delete comment');
+        return { success: false };
+      }
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      Alert.alert('Error', 'Failed to delete comment: ' + error.message);
+      return { success: false };
+    }
+  };
+
   // Toggle like
   const toggleLike = async (postId, isPost = true) => {
     try {
@@ -552,6 +628,8 @@ export const useCommunityApi = () => {
     
     // Post functions
     createPost,
+    deletePost,
+    deleteComment,
     toggleLike,
     toggleFollow,
     loadProfileStats,

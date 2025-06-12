@@ -25,7 +25,9 @@
       "buildNumber": "1.0.0",
       "infoPlist": {
         "CFBundleName": "Hoopay Wallet",
-        "CFBundleDisplayName": "Hoopay Wallet"
+        "CFBundleDisplayName": "Hoopay Wallet",
+        "NSFaceIDUsageDescription": "Use Face ID to quickly and securely access your Hoopay Wallet account.",
+        "NSBiometricAuthenticationUsageDescription": "Use biometric authentication to quickly and securely access your account."
       }
     },
     "android": {

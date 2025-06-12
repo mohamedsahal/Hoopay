@@ -1,5 +1,7 @@
 import { TEST_CONFIG } from '../config/testConfig';
 import fetch from 'node-fetch';
+import axios from 'axios';
+import * as SecureStore from 'expo-secure-store';
 
 interface LoginResponse {
   success: boolean;
@@ -15,7 +17,9 @@ interface LoginResponse {
   message: string;
 }
 
-const API_URLS = {
+const BASE_URLS = {
+  development: 'http://localhost:8000/api',
+  staging: 'https://staging.hoopay.example.com/api',
   production: 'https://hoopaywallet.com/api',  // Production URL
 };
 
@@ -127,7 +131,7 @@ async function testEndpoint(baseUrl: string, test: typeof testEndpoints[0], auth
 async function runTests() {
   console.log('\n🚀 Starting API Tests through production...');
   
-  for (const [platform, baseUrl] of Object.entries(API_URLS)) {
+  for (const [platform, baseUrl] of Object.entries(BASE_URLS)) {
     console.log(`\n📡 Testing ${platform.toUpperCase()} environment: ${baseUrl}`);
     console.log('----------------------------------------');
 
