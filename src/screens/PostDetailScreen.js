@@ -186,33 +186,66 @@ const PostDetailScreen = ({ navigation, route }) => {
             text: 'Delete',
             style: 'destructive',
             onPress: async () => {
-              const token = await getAuthToken();
-              // Use direct URL construction like the working routes
-              const deleteEndpoint = `${BASE_URL}/mobile/discussions/${postId}`;
-              const response = await fetch(deleteEndpoint, {
-                method: 'DELETE',
-                headers: getHeaders(token),
-              });
+              try {
+                const token = await getAuthToken();
+                if (!token) {
+                  Alert.alert('Error', 'Please login to delete posts');
+                  return;
+                }
 
-              const data = await response.json();
+                // Show loading indicator
+                Alert.alert('Deleting...', 'Please wait while we delete your post.');
 
-              if (data.success) {
-                Alert.alert('Success', 'Post deleted successfully!', [
-                  {
-                    text: 'OK',
-                    onPress: () => navigation.goBack()
+                const deleteEndpoint = `${BASE_URL}/mobile/discussions/${postId}`;
+                const response = await fetch(deleteEndpoint, {
+                  method: 'DELETE',
+                  headers: getHeaders(token),
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                  Alert.alert('Success', data.message || 'Post deleted successfully!', [
+                    {
+                      text: 'OK',
+                      onPress: () => navigation.goBack()
+                    }
+                  ]);
+                } else {
+                  // Handle different error codes
+                  let errorMessage = data.error || 'Failed to delete post';
+                  
+                  switch (data.code) {
+                    case 'UNAUTHORIZED':
+                      errorMessage = 'Please login to delete posts';
+                      break;
+                    case 'POST_NOT_FOUND':
+                      errorMessage = 'Post no longer exists';
+                      break;
+                    case 'UNAUTHORIZED_ACTION':
+                      errorMessage = 'You can only delete your own posts';
+                      break;
+                    case 'DELETE_FAILED':
+                      errorMessage = 'Failed to delete post. Please try again.';
+                      break;
                   }
-                ]);
-              } else {
-                Alert.alert('Error', data.error || 'Failed to delete post');
+                  
+                  Alert.alert('Error', errorMessage);
+                }
+              } catch (networkError) {
+                console.error('Network error deleting post:', networkError);
+                Alert.alert(
+                  'Network Error', 
+                  'Could not connect to server. Please check your internet connection and try again.'
+                );
               }
             },
           },
         ]
       );
     } catch (error) {
-      console.error('Error deleting post:', error);
-      Alert.alert('Error', 'Failed to delete post: ' + error.message);
+      console.error('Error in delete post dialog:', error);
+      Alert.alert('Error', 'Something went wrong. Please try again.');
     }
   };
 
@@ -230,34 +263,65 @@ const PostDetailScreen = ({ navigation, route }) => {
             text: 'Delete',
             style: 'destructive',
             onPress: async () => {
-              const token = await getAuthToken();
-              // Use direct URL construction matching the backend routes
-              const deleteEndpoint = `${BASE_URL}/mobile/discussions/comments/${commentId}`;
-              const response = await fetch(deleteEndpoint, {
-                method: 'DELETE',
-                headers: getHeaders(token),
-              });
+              try {
+                const token = await getAuthToken();
+                if (!token) {
+                  Alert.alert('Error', 'Please login to delete comments');
+                  return;
+                }
 
-              const data = await response.json();
+                const deleteEndpoint = `${BASE_URL}/mobile/discussions/comments/${commentId}`;
+                const response = await fetch(deleteEndpoint, {
+                  method: 'DELETE',
+                  headers: getHeaders(token),
+                });
 
-              if (data.success) {
-                // Remove comment from state
-                setPost(prev => ({
-                  ...prev,
-                  comments: prev.comments.filter(comment => comment.id !== commentId),
-                  comments_count: prev.comments_count - 1
-                }));
-                Alert.alert('Success', 'Comment deleted successfully!');
-              } else {
-                Alert.alert('Error', data.error || 'Failed to delete comment');
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                  // Remove comment from state immediately for better UX
+                  setPost(prev => ({
+                    ...prev,
+                    comments: prev.comments.filter(comment => comment.id !== commentId),
+                    comments_count: Math.max(0, prev.comments_count - 1)
+                  }));
+                  
+                  Alert.alert('Success', data.message || 'Comment deleted successfully!');
+                } else {
+                  // Handle different error codes
+                  let errorMessage = data.error || 'Failed to delete comment';
+                  
+                  switch (data.code) {
+                    case 'UNAUTHORIZED':
+                      errorMessage = 'Please login to delete comments';
+                      break;
+                    case 'COMMENT_NOT_FOUND':
+                      errorMessage = 'Comment no longer exists';
+                      break;
+                    case 'UNAUTHORIZED_ACTION':
+                      errorMessage = 'You can only delete your own comments';
+                      break;
+                    case 'DELETE_FAILED':
+                      errorMessage = 'Failed to delete comment. Please try again.';
+                      break;
+                  }
+                  
+                  Alert.alert('Error', errorMessage);
+                }
+              } catch (networkError) {
+                console.error('Network error deleting comment:', networkError);
+                Alert.alert(
+                  'Network Error', 
+                  'Could not connect to server. Please check your internet connection and try again.'
+                );
               }
             },
           },
         ]
       );
     } catch (error) {
-      console.error('Error deleting comment:', error);
-      Alert.alert('Error', 'Failed to delete comment: ' + error.message);
+      console.error('Error in delete comment dialog:', error);
+      Alert.alert('Error', 'Something went wrong. Please try again.');
     }
   };
 

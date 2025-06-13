@@ -3,7 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
 // Production Base URL
-export const BASE_URL = 'https://hoopaywallet.com';
+export const BASE_URL = 'https://9e98-102-217-123-227.ngrok-free.app';
 
 // Debug flag
 const DEBUG = __DEV__;
@@ -14,6 +14,9 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
+    // Add ngrok-specific headers to avoid tunnel issues
+    'ngrok-skip-browser-warning': 'true',
+    'User-Agent': 'HoopayMobileApp/1.0',
   },
 });
 
@@ -59,9 +62,15 @@ api.interceptors.request.use(
       
       // Handle API path fixes
       if (config.url) {
-        // Skip path fixes for auth endpoints
-        if (config.url.includes('auth/login') || config.url.includes('/auth/register')) {
-          // For auth endpoints, make sure they have the correct format
+        // Skip path fixes for auth endpoints - these should go directly without additional /api prefix
+        if (config.url.includes('auth/login')) {
+          // For /auth/login endpoint, make sure it has the correct format but don't add /api prefix
+          if (!config.url.startsWith('/')) {
+            config.url = '/' + config.url;
+          }
+          // Don't modify auth login endpoint further - it should go to /auth/login directly
+        } else if (config.url.includes('/api/mobile/')) {
+          // For /api/mobile/* endpoints, they already have the full path, don't modify them
           if (!config.url.startsWith('/')) {
             config.url = '/' + config.url;
           }

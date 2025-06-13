@@ -3,8 +3,18 @@
  * This script tests various endpoints to ensure the API is working correctly
  */
 
+// API Test Configuration for Development
+const API_CONFIG = {
+  BASE_URL: 'https://9e98-102-217-123-227.ngrok-free.app/api/v1',
+  TIMEOUT: 10000,
+  HEADERS: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  }
+};
+
 const CONFIG = {
-  BASE_URL: 'https://hoopaywallet.com/api/v1',
+  BASE_URL: API_CONFIG.BASE_URL,
   // You'll need to provide valid credentials for testing
   testEmail: '', // Remove default test email to prevent 404 errors
   testPassword: 'testPassword123',

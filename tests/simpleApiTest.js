@@ -1,7 +1,7 @@
 const axios = require('axios');
 
 // Configuration - using production URL
-const API_URL = 'https://hoopaywallet.com';
+const API_URL = 'https://9e98-102-217-123-227.ngrok-free.app';
 
 // You'll need to replace this with a valid JWT token
 // You can copy this from your app's secure storage or from the login response

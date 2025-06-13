@@ -251,9 +251,9 @@ export const authService = {
         hasReferralCode: !!userData.referral_code
       });
       
-      // Use the working /auth/register endpoint instead of /mobile/register
-      // since the mobile route appears to have registration issues
-      const response = await api.post('/auth/register', {
+      // Use the working /api/mobile/register endpoint
+      // This is the endpoint that's actually working on the backend
+      const response = await api.post('/api/mobile/register', {
         name: userData.name,
         email: userData.email,
         password: userData.password,
@@ -350,9 +350,9 @@ export const authService = {
     try {
       console.log('AuthService.verifyEmail: Verifying email for:', email);
       
-      const response = await api.post('/auth/verify-email', {
+      const response = await api.post('/api/mobile/verify-email', {
         email,
-        code
+        verification_code: code
       });
       
       console.log('AuthService.verifyEmail: API response received:', {
@@ -416,7 +416,7 @@ export const authService = {
     try {
       console.log('AuthService.resendVerificationEmail: Resending code for:', email);
       
-      const response = await api.post('/auth/resend-verification', {
+      const response = await api.post('/api/mobile/resend-verification', {
         email
       });
       

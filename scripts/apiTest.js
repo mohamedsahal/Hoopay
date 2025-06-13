@@ -2,7 +2,7 @@ const axios = require('axios');
 const fs = require('fs');
 
 // Configuration
-const API_URL = 'https://hoopaywallet.com'; // Using production URL
+const API_URL = 'https://9e98-102-217-123-227.ngrok-free.app'; // Using development ngrok URL
 let authToken = '';
 
 // Attempt to read token from file if it exists

@@ -9,7 +9,7 @@
 const https = require('https');
 
 // Configuration
-const BASE_URL = 'https://hoopaywallet.com';
+const BASE_URL = 'https://9e98-102-217-123-227.ngrok-free.app';
 const API_V1_BASE = `${BASE_URL}/api/v1`;
 
 // Get credentials from command line args or use unique defaults

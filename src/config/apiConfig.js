@@ -1,6 +1,6 @@
 // API Configuration
 export const API_CONFIG = {
-  baseURL: 'https://hoopaywallet.com/api', // Production
+  baseURL: 'https://9e98-102-217-123-227.ngrok-free.app/api', // Production
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -16,10 +16,9 @@ console.log('BASE_URL:', BASE_URL);
 
 // API Endpoints
 export const ENDPOINTS = {
-  // Authentication - Using the working /auth/ endpoints instead of /mobile/ 
-  // since mobile routes are having registration issues on backend
+  // Authentication - Using the working endpoints
   LOGIN: '/auth/login',
-  REGISTER: '/auth/register',
+  REGISTER: '/api/mobile/register',  // Use the working mobile register endpoint
   LOGOUT: '/mobile/logout',
   USER: '/mobile/user',
   PASSWORD_RESET: '/auth/reset-password', // Legacy endpoint
@@ -33,9 +32,10 @@ export const ENDPOINTS = {
     STATUS: '/mobile/password/reset/status'
   },
   
-  // Email Verification endpoints - using working /auth/ endpoints
-  VERIFY_EMAIL: '/auth/verify-email',
-  RESEND_VERIFICATION: '/auth/resend-verification',
+  // Email Verification endpoints - using new dedicated mobile endpoints
+  VERIFY_EMAIL: '/api/mobile/verify-email',
+  RESEND_VERIFICATION: '/api/mobile/resend-verification',
+  VERIFICATION_STATUS: '/api/mobile/verification-status',
   
   // Profile Management - Using the working mobile endpoints
   PROFILE: {

@@ -1,8 +1,9 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Configuration
-const API_URL = 'https://hoopaywallet.com/api';
+// Development API URL - using ngrok for development
+const API_URL = 'https://9e98-102-217-123-227.ngrok-free.app/api';
 
 class ReferralService {
   constructor() {
@@ -206,9 +207,31 @@ class ReferralService {
   }
 
   // Generate shareable referral link
-  generateReferralLink(referralCode) {
-    const baseUrl = 'https://hoopaywallet.com';
-    return `${baseUrl}/register?ref=${referralCode}`;
+  async generateReferralLink(userId) {
+    try {
+      // Development base URL - using ngrok for development
+      const baseUrl = 'https://9e98-102-217-123-227.ngrok-free.app';
+      
+      const token = await SecureStore.getItemAsync('auth_token');
+      const response = await axios.get(`${this.baseURL}/generate-link`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      console.error('Error generating referral link:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to generate referral link'
+      };
+    }
   }
 
   // Generate sharing text for social media

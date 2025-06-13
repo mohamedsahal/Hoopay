@@ -611,75 +611,74 @@ class AuthService {
 
   async resendVerificationEmail(email: string): Promise<{ success: boolean; message: string }> {
     try {
-      // Since apiConfig doesn't have RESEND_VERIFICATION explicitly defined, construct the URL
-      const { data: response } = await api.post<ApiResponse>('/auth/resend-verification', { email });
-      
-      return {
-        success: response.success,
-        message: response.message || 'Verification email sent',
-      };
-    } catch (error: any) {
-      if (error.status === 400 && error.data?.message?.includes('Failed to send')) {
-        throw new Error('SMTP_NOT_CONFIGURED');
+      const { data: response } = await api.post<ApiResponse>('/api/mobile/resend-verification', { email });
+
+      if (response.success) {
+        return {
+          success: true,
+          message: response.message || 'Verification code sent successfully'
+        };
       }
-      throw new Error(error.message || 'Failed to resend verification email');
+
+      throw new Error(response.message || 'Failed to send verification code');
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.response?.data?.message || error.message || 'Failed to send verification code'
+      };
     }
   }
 
   async verifyEmail(email: string, verificationCode: string): Promise<AuthResponse> {
     try {
-      // Since apiConfig doesn't have VERIFY_EMAIL explicitly defined, construct the URL
-      const { data: response } = await api.post<ApiResponse>('/auth/verify-email', {
+      const { data: response } = await api.post<ApiResponse>('/api/mobile/verify-email', {
         email,
-        verification_code: verificationCode,
+        verification_code: verificationCode
       });
 
       if (response.success) {
         const { user, token } = response.data || {};
         
-        // If we got a token back, save the session
-        if (user && token) {
+        if (token && user) {
           await this.setToken(token);
-          const sanitizedUser = this.sanitizeUserData(user);
-          await SecureStore.setItemAsync('userData', JSON.stringify(sanitizedUser));
+          await SecureStore.setItemAsync('userData', JSON.stringify(user));
+          
+          return {
+            success: true,
+            user,
+            token,
+            message: response.message || 'Email verified successfully'
+          };
         }
         
         return {
           success: true,
-          user: user || null,
-          token: token || null,
           message: response.message || 'Email verified successfully'
         };
       }
-      
+
       throw new Error(response.message || 'Email verification failed');
     } catch (error: any) {
-      console.error('Email verification error:', error);
-      throw new Error(
-        error.response?.message || 
-        error.response?.errors?.verification_code?.[0] || 
-        error.message || 
-        'Email verification failed'
-      );
+      return {
+        success: false,
+        message: error.response?.data?.message || error.message || 'Email verification failed'
+      };
     }
   }
 
   async checkVerificationStatus(email: string): Promise<{ success: boolean; data: any }> {
     try {
-      // Validate that we have a real email, not a test email
-      if (!email || email.includes('test@example.com')) {
-        throw new Error('Invalid email provided for verification status check');
-      }
-      
-      // Since apiConfig doesn't have VERIFICATION_STATUS explicitly defined, construct the URL
-      const { data: response } = await api.get<ApiResponse>(`/auth/verification-status?email=${encodeURIComponent(email)}`);
-      
+      const { data: response } = await api.get<ApiResponse>(`/api/mobile/verification-status?email=${encodeURIComponent(email)}`);
+
       return {
-        success: response.success,
-        data: response.data,
+        success: response.success || false,
+        data: response.data || {}
       };
     } catch (error: any) {
-      throw new Error(error.message || 'Failed to check verification status');
+      return {
+        success: false,
+        data: { error: error.message }
+      };
     }
   }
 }

@@ -1,4 +1,5 @@
-const PROD_API_URL = 'https://hoopaywallet.com'; // Production API URL
+// Development API URL - using ngrok for development
+const PROD_API_URL = 'https://9e98-102-217-123-227.ngrok-free.app'; // Development API URL
 
 export const API_URL = PROD_API_URL;
 export const BASE_URL = `${API_URL}/api`;
@@ -10,13 +11,13 @@ console.log('BASE_URL:', BASE_URL);
 
 export const ENDPOINTS = {
   AUTH: {
-    LOGIN: '/mobile/login',
-    REGISTER: '/mobile/register',
+    LOGIN: '/auth/login',
+    REGISTER: '/api/mobile/register',
     LOGOUT: '/mobile/logout',
     MOBILE_LOGOUT: '/mobile/logout',
-    VERIFY_EMAIL: '/api/auth/verify-email',
-    RESEND_VERIFICATION: '/api/auth/resend-verification',
-    VERIFICATION_STATUS: '/api/auth/verification-status',
+    VERIFY_EMAIL: '/api/mobile/verify-email',
+    RESEND_VERIFICATION: '/api/mobile/resend-verification',
+    VERIFICATION_STATUS: '/api/mobile/verification-status',
     FORGOT_PASSWORD: '/mobile/password/reset',
     RESET_PASSWORD: '/mobile/password/reset',
     USER: '/mobile/user',

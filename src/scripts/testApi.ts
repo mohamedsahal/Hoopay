@@ -17,10 +17,9 @@ interface LoginResponse {
   message: string;
 }
 
-const BASE_URLS = {
-  development: 'http://localhost:8000/api',
-  staging: 'https://staging.hoopay.example.com/api',
-  production: 'https://hoopaywallet.com/api',  // Production URL
+const API_CONFIGS = {
+  development: 'https://9e98-102-217-123-227.ngrok-free.app/api',  // Development ngrok URL
+  production: 'https://9e98-102-217-123-227.ngrok-free.app/api',  // Development URL (same as dev for now)
 };
 
 const testEndpoints = [
@@ -131,7 +130,7 @@ async function testEndpoint(baseUrl: string, test: typeof testEndpoints[0], auth
 async function runTests() {
   console.log('\n🚀 Starting API Tests through production...');
   
-  for (const [platform, baseUrl] of Object.entries(BASE_URLS)) {
+  for (const [platform, baseUrl] of Object.entries(API_CONFIGS)) {
     console.log(`\n📡 Testing ${platform.toUpperCase()} environment: ${baseUrl}`);
     console.log('----------------------------------------');
 

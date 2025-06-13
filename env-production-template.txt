@@ -1,0 +1,97 @@
+# =============================================================================
+# HOOPAY WALLET - PRODUCTION EMAIL CONFIGURATION TEMPLATE
+# =============================================================================
+# Copy these settings to your app/.env file
+
+# =============================================================================
+# EMAIL CONFIGURATION FOR REAL EMAIL DELIVERY
+# =============================================================================
+
+# Set Gmail as primary email service
+MAIL_MAILER=gmail
+
+# Gmail SMTP Configuration (REQUIRED for real emails)
+GMAIL_USERNAME=your-email@gmail.com
+GMAIL_PASSWORD=your-16-character-app-password
+
+# Email From Address (what users see as sender)
+MAIL_FROM_ADDRESS=noreply@hoopaywallet.com
+MAIL_FROM_NAME="Hoopay Wallet"
+
+# Backup SMTP Configuration (fallback)
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=your-email@gmail.com
+MAIL_PASSWORD=your-16-character-app-password
+MAIL_ENCRYPTION=tls
+
+# =============================================================================
+# HOW TO GET GMAIL APP PASSWORD
+# =============================================================================
+# 1. Go to https://myaccount.google.com/security
+# 2. Enable 2-Step Verification
+# 3. Go to https://myaccount.google.com/apppasswords
+# 4. Select "Mail" and "Other (Custom name)"
+# 5. Enter "Hoopay Wallet" as the name
+# 6. Copy the 16-character password (e.g., "abcd efgh ijkl mnop")
+# 7. Use this password in GMAIL_PASSWORD (remove spaces)
+
+# =============================================================================
+# EXAMPLE CONFIGURATION
+# =============================================================================
+# MAIL_MAILER=gmail
+# GMAIL_USERNAME=hoopay.support@gmail.com
+# GMAIL_PASSWORD=abcdefghijklmnop
+# MAIL_FROM_ADDRESS=noreply@hoopaywallet.com
+# MAIL_FROM_NAME="Hoopay Wallet"
+
+# =============================================================================
+# ALTERNATIVE EMAIL SERVICES
+# =============================================================================
+
+# Option 1: Mailgun (Professional Email Service)
+# MAIL_MAILER=mailgun
+# MAILGUN_DOMAIN=mg.hoopaywallet.com
+# MAILGUN_SECRET=your-mailgun-secret-key
+
+# Option 2: Postmark (Transactional Email Service)
+# MAIL_MAILER=postmark
+# POSTMARK_TOKEN=your-postmark-server-token
+
+# Option 3: Amazon SES (AWS Email Service)
+# MAIL_MAILER=ses
+# AWS_ACCESS_KEY_ID=your-aws-access-key
+# AWS_SECRET_ACCESS_KEY=your-aws-secret-key
+# AWS_DEFAULT_REGION=us-east-1
+
+# Option 4: Resend (Modern Email API)
+# MAIL_MAILER=resend
+# RESEND_KEY=your-resend-api-key
+
+# =============================================================================
+# TESTING COMMANDS
+# =============================================================================
+# After updating .env file, restart your Laravel server and run:
+# node testProductionEmail.js
+#
+# You should see:
+# ✅ Email Sent: YES
+# 📧 Method Used: gmail
+# 🎉 EXCELLENT! Gmail SMTP is working perfectly!
+
+# =============================================================================
+# TROUBLESHOOTING
+# =============================================================================
+# If you see "Mailer [gmail] is not defined":
+# - Make sure you've updated the app/.env file (not this template)
+# - Restart your Laravel server after changing .env
+#
+# If you see "Authentication failed":
+# - Check your Gmail username and app password
+# - Ensure 2FA is enabled on your Gmail account
+# - Make sure you're using App Password, not your regular password
+#
+# If emails still go to logs:
+# - Verify MAIL_MAILER=gmail in .env file
+# - Check that GMAIL_USERNAME and GMAIL_PASSWORD are set
+# - Restart Laravel server after changes 
