@@ -5,7 +5,7 @@
 
 // API Test Configuration for Development
 const API_CONFIG = {
-  BASE_URL: 'https://9e98-102-217-123-227.ngrok-free.app/api/v1',
+  BASE_URL: 'https://hoopaywallet.com/api/v1',
   TIMEOUT: 10000,
   HEADERS: {
     'Content-Type': 'application/json',

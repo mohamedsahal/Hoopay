@@ -3,8 +3,8 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { ENDPOINTS } from '../config/apiConfig';
 
-// Development Base URL - using ngrok for development
-const API_URL = 'https://9e98-102-217-123-227.ngrok-free.app';  // Base URL without /api
+// Production Base URL
+const API_URL = 'https://hoopaywallet.com';  // Base URL without /api
   
 // Add /api as a path prefix to avoid double-inclusion in URLs
 const API_PATH_PREFIX = '/api';
@@ -82,7 +82,7 @@ api.interceptors.request.use(
     }
     
     // Apply the updated headers
-    config.headers = headers;
+    config.headers = headers as any;
     
     return config;
   },

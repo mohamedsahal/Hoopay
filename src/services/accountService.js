@@ -3,8 +3,8 @@ import axios from 'axios';
 import api from './api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Development API Base URL - using ngrok for development
-const API_BASE_URL = 'https://9e98-102-217-123-227.ngrok-free.app/api';
+// Production API Base URL
+const API_BASE_URL = 'https://hoopaywallet.com/api';
 
 class AccountService {
   constructor() {

@@ -1,6 +1,6 @@
 // API Configuration
 export const API_CONFIG = {
-  baseURL: 'https://9e98-102-217-123-227.ngrok-free.app/api', // Production
+  baseURL: 'https://hoopaywallet.com/api', // Production
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',

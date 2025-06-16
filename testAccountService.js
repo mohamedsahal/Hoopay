@@ -16,7 +16,7 @@ const mockAsyncStorage = {
 // Simulate the account service for testing
 class TestAccountService {
   constructor() {
-    this.API_BASE_URL = 'https://9e98-102-217-123-227.ngrok-free.app/api';
+    this.API_BASE_URL = 'https://hoopaywallet.com/api';
     // For local testing: 'http://localhost:8000/api'
     
     this.apiClient = axios.create({

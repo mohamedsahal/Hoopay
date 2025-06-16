@@ -1,5 +1,5 @@
-// Development API URL - using ngrok for development
-const PROD_API_URL = 'https://9e98-102-217-123-227.ngrok-free.app'; // Development API URL
+// Production API URL
+const PROD_API_URL = 'https://hoopaywallet.com'; // Production API URL
 
 export const API_URL = PROD_API_URL;
 export const BASE_URL = `${API_URL}/api`;

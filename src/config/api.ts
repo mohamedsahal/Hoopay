@@ -3,7 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
 // Production Base URL
-export const BASE_URL = 'https://9e98-102-217-123-227.ngrok-free.app';
+export const BASE_URL = 'https://hoopaywallet.com';
 
 // Debug flag
 const DEBUG = __DEV__;
@@ -14,8 +14,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
-    // Add ngrok-specific headers to avoid tunnel issues
-    'ngrok-skip-browser-warning': 'true',
+    // Production headers
     'User-Agent': 'HoopayMobileApp/1.0',
   },
 });

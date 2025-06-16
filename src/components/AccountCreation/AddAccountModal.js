@@ -55,7 +55,7 @@ const AddAccountModal = ({ visible, onClose, onSubmit }) => {
     try {
       console.log('Fetching account categories');
       // Use the same pattern as the working profile endpoint
-      const response = await fetch('https://9e98-102-217-123-227.ngrok-free.app/api/auth/mobile/account-categories', {
+      const response = await fetch('https://hoopaywallet.com/api/auth/mobile/account-categories', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -87,7 +87,7 @@ const AddAccountModal = ({ visible, onClose, onSubmit }) => {
     try {
       console.log(`Fetching account types for category: ${selectedCategory}`);
       // Use the same pattern as the working profile endpoint
-              const response = await fetch(`https://9e98-102-217-123-227.ngrok-free.app/api/auth/mobile/account-types/${selectedCategory}`, {
+              const response = await fetch(`https://hoopaywallet.com/api/auth/mobile/account-types/${selectedCategory}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -160,7 +160,7 @@ const AddAccountModal = ({ visible, onClose, onSubmit }) => {
     try {
       console.log(`Fetching account prefix for type: ${accountType}`);
       // Use the same pattern as the working profile endpoint
-              const response = await fetch(`https://9e98-102-217-123-227.ngrok-free.app/api/auth/mobile/account-prefix/${accountType}`, {
+              const response = await fetch(`https://hoopaywallet.com/api/auth/mobile/account-prefix/${accountType}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',

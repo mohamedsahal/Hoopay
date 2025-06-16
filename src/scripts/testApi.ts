@@ -18,8 +18,8 @@ interface LoginResponse {
 }
 
 const API_CONFIGS = {
-  development: 'https://9e98-102-217-123-227.ngrok-free.app/api',  // Development ngrok URL
-  production: 'https://9e98-102-217-123-227.ngrok-free.app/api',  // Development URL (same as dev for now)
+  development: 'https://hoopaywallet.com/api',  // Production URL
+  production: 'https://hoopaywallet.com/api',  // Production URL
 };
 
 const testEndpoints = [

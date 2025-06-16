@@ -8,7 +8,7 @@ const rl = readline.createInterface({
 });
 
 // Configuration
-const API_URL = 'https://9e98-102-217-123-227.ngrok-free.app';
+const API_URL = 'https://hoopaywallet.com';
 let authToken = '';
 
 // Create axios instance

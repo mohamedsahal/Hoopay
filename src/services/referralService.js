@@ -2,8 +2,8 @@ import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Development API URL - using ngrok for development
-const API_URL = 'https://9e98-102-217-123-227.ngrok-free.app/api';
+// Production API URL
+const API_URL = 'https://hoopaywallet.com/api';
 
 class ReferralService {
   constructor() {
@@ -209,8 +209,8 @@ class ReferralService {
   // Generate shareable referral link
   async generateReferralLink(userId) {
     try {
-      // Development base URL - using ngrok for development
-      const baseUrl = 'https://9e98-102-217-123-227.ngrok-free.app';
+          // Production base URL
+    const baseUrl = 'https://hoopaywallet.com';
       
       const token = await SecureStore.getItemAsync('auth_token');
       const response = await axios.get(`${this.baseURL}/generate-link`, {
