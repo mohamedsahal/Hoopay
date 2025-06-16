@@ -36,6 +36,7 @@ const SignupScreen = ({ navigation }) => {
   const [errors, setErrors] = useState({});
   const [isReferralCodeValid, setIsReferralCodeValid] = useState(null);
   const [referralCodeChecking, setReferralCodeChecking] = useState(false);
+  const [referralCodeError, setReferralCodeError] = useState('');
 
   const formRef = useRef(null);
 
@@ -56,17 +57,27 @@ const SignupScreen = ({ navigation }) => {
   const validateReferralCode = async (code) => {
     if (!code.trim()) {
       setIsReferralCodeValid(null);
+      setReferralCodeError('');
       return;
     }
 
     setReferralCodeChecking(true);
     try {
       const result = await referralService.checkReferralCode(code);
-      // Check the actual validation result from the API, not just if the API call succeeded
-      setIsReferralCodeValid(result.success && result.data?.valid === true);
+      
+      if (result.success && result.data?.valid === true) {
+        setIsReferralCodeValid(true);
+        setReferralCodeError('');
+      } else {
+        setIsReferralCodeValid(false);
+        // Use the specific error message from the API
+        const errorMessage = result.data?.message || result.message || 'Invalid referral code';
+        setReferralCodeError(errorMessage);
+      }
     } catch (error) {
       console.error('Error validating referral code:', error);
       setIsReferralCodeValid(false);
+      setReferralCodeError('Unable to validate referral code. Please try again.');
     } finally {
       setReferralCodeChecking(false);
     }
@@ -458,7 +469,9 @@ const SignupScreen = ({ navigation }) => {
             )}
           </View>
           {isReferralCodeValid === false && referralCode.trim() !== '' && (
-            <Text style={getStyles(colors).errorText}>Invalid referral code</Text>
+            <Text style={getStyles(colors).errorText}>
+              {referralCodeError || 'Invalid referral code'}
+            </Text>
           )}
           {isReferralCodeValid === true && (
             <Text style={getStyles(colors).successText}>Valid referral code! You'll earn rewards when you transact.</Text>

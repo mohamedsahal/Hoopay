@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, 
   Text, 
@@ -6,7 +6,10 @@ import {
   Image, 
   TextInput,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
+  Animated,
+  Platform,
+  Keyboard
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -32,10 +35,41 @@ const CommentsPreview = ({
     colors = Colors;
   }
 
+  const textInputRef = useRef(null);
+  const commentInputHeight = useRef(new Animated.Value(40)).current;
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
   const [comments, setComments] = useState(initialComments.slice(0, maxComments));
   const [newComment, setNewComment] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
   const [showAddComment, setShowAddComment] = useState(false);
+
+  // Enhanced keyboard handling
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      () => {
+        setIsKeyboardVisible(true);
+      }
+    );
+
+    const keyboardDidHideListener = Keyboard.addListener(
+      'keyboardDidHide',
+      () => {
+        setIsKeyboardVisible(false);
+        Animated.timing(commentInputHeight, {
+          toValue: 40,
+          duration: 250,
+          useNativeDriver: false,
+        }).start();
+      }
+    );
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, [commentInputHeight]);
 
   const getAuthToken = async () => {
     try {
@@ -72,6 +106,13 @@ const CommentsPreview = ({
         setNewComment('');
         setShowAddComment(false);
         
+        // Reset input height
+        Animated.timing(commentInputHeight, {
+          toValue: 40,
+          duration: 250,
+          useNativeDriver: false,
+        }).start();
+        
         // Notify parent component about the change
         if (onCommentChange) {
           onCommentChange('add', data.data);
@@ -89,33 +130,27 @@ const CommentsPreview = ({
 
   const deleteComment = async (commentId) => {
     try {
-      Alert.alert(
-        'Delete Comment',
-        'Are you sure you want to delete this comment?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Delete',
-            style: 'destructive',
-            onPress: async () => {
-              const token = await getAuthToken();
-              const response = await fetch(`${BASE_URL}${ENDPOINTS.DISCUSSIONS.DELETE_COMMENT}${commentId}`, {
-                method: 'DELETE',
-                headers: getHeaders(token),
-              });
+      const token = await getAuthToken();
+      const response = await fetch(`${BASE_URL}${ENDPOINTS.DISCUSSIONS.COMMENTS}${commentId}`, {
+        method: 'DELETE',
+        headers: getHeaders(token),
+      });
 
-              const data = await response.json();
-              if (data.success) {
-                setComments(prev => prev.filter(comment => comment.id !== commentId));
-                if (onCommentChange) onCommentChange('delete', { id: commentId });
-              }
-            },
-          },
-        ]
-      );
+      const data = await response.json();
+
+      if (data.success) {
+        setComments(prev => prev.filter(comment => comment.id !== commentId));
+        
+        // Notify parent component about the change
+        if (onCommentChange) {
+          onCommentChange('delete', { id: commentId });
+        }
+      } else {
+        Alert.alert('Error', data.error || 'Failed to delete comment');
+      }
     } catch (error) {
       console.error('Error deleting comment:', error);
-      Alert.alert('Error', 'Failed to delete comment: ' + error.message);
+      Alert.alert('Error', 'Failed to delete comment');
     }
   };
 
@@ -134,7 +169,6 @@ const CommentsPreview = ({
       const data = await response.json();
 
       if (data.success) {
-        // Update comment likes
         setComments(prev => prev.map(comment => 
           comment.id === commentId 
             ? { ...comment, is_liked: data.data.is_liked, likes_count: data.data.likes_count }
@@ -146,12 +180,41 @@ const CommentsPreview = ({
     }
   };
 
+  // Handle input content size change for dynamic height
+  const handleContentSizeChange = (event) => {
+    const { height } = event.nativeEvent.contentSize;
+    const newHeight = Math.min(80, Math.max(40, height));
+    
+    Animated.timing(commentInputHeight, {
+      toValue: newHeight,
+      duration: 100,
+      useNativeDriver: false,
+    }).start();
+  };
+
+  const handleShowAddComment = () => {
+    setShowAddComment(true);
+    setTimeout(() => {
+      textInputRef.current?.focus();
+    }, 100);
+  };
+
+  const handleCancelComment = () => {
+    setShowAddComment(false);
+    setNewComment('');
+    Animated.timing(commentInputHeight, {
+      toValue: 40,
+      duration: 250,
+      useNativeDriver: false,
+    }).start();
+  };
+
   if (comments.length === 0 && !showAddComment) {
     return (
       <View style={styles.commentsContainer}>
         <TouchableOpacity 
           style={styles.addCommentTrigger}
-          onPress={() => setShowAddComment(true)}
+          onPress={handleShowAddComment}
         >
           <Text style={[styles.addCommentTriggerText, { color: colors.textSecondary }]}>
             💬 Be the first to comment
@@ -214,46 +277,70 @@ const CommentsPreview = ({
         </View>
       ))}
 
-      {/* Add comment section */}
+      {/* Enhanced Add comment section */}
       {showAddComment ? (
         <View style={styles.addCommentSection}>
-          <TextInput
-            style={[styles.commentInput, { backgroundColor: colors.surface, color: colors.text }]}
-            placeholder="Add a comment..."
-            placeholderTextColor={colors.textSecondary}
-            value={newComment}
-            onChangeText={setNewComment}
-            multiline
-            maxLength={500}
-            autoFocus
-          />
+          <View style={styles.commentInputWrapper}>
+            <View style={styles.commentInputRow}>
+              <Image 
+                source={currentUser?.photo_path ? { uri: currentUser.photo_path } : require('../../assets/images/profile.jpg')}
+                style={styles.currentUserAvatar}
+              />
+              <Animated.View style={[styles.textInputContainer, { height: commentInputHeight }]}>
+                <TextInput
+                  ref={textInputRef}
+                  style={[
+                    styles.commentInput, 
+                    { 
+                      backgroundColor: colors.surface, 
+                      color: colors.text,
+                      height: '100%'
+                    }
+                  ]}
+                  placeholder="Add a comment..."
+                  placeholderTextColor={colors.textSecondary}
+                  value={newComment}
+                  onChangeText={setNewComment}
+                  multiline
+                  maxLength={500}
+                  textAlignVertical="top"
+                  onContentSizeChange={handleContentSizeChange}
+                  blurOnSubmit={false}
+                  onSubmitEditing={Platform.OS === 'ios' ? undefined : addComment}
+                />
+              </Animated.View>
+              <TouchableOpacity 
+                style={[
+                  styles.sendButton, 
+                  { 
+                    backgroundColor: (newComment.trim() && !submittingComment) ? colors.primary : colors.textSecondary,
+                    opacity: (newComment.trim() && !submittingComment) ? 1 : 0.5
+                  }
+                ]}
+                onPress={addComment}
+                disabled={submittingComment || !newComment.trim()}
+              >
+                {submittingComment ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.sendButtonText}>Send</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
           <View style={styles.commentActions}>
             <TouchableOpacity 
               style={styles.cancelButton}
-              onPress={() => {
-                setShowAddComment(false);
-                setNewComment('');
-              }}
+              onPress={handleCancelComment}
             >
               <Text style={[styles.cancelButtonText, { color: colors.textSecondary }]}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.submitCommentButton, { backgroundColor: colors.primary }]}
-              onPress={addComment}
-              disabled={submittingComment || !newComment.trim()}
-            >
-              {submittingComment ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Text style={styles.submitCommentText}>Post</Text>
-              )}
             </TouchableOpacity>
           </View>
         </View>
       ) : (
         <TouchableOpacity 
           style={styles.addCommentTrigger}
-          onPress={() => setShowAddComment(true)}
+          onPress={handleShowAddComment}
         >
           <Text style={[styles.addCommentTriggerText, { color: colors.textSecondary }]}>
             💬 Add a comment...
@@ -328,38 +415,58 @@ const styles = {
     borderTopWidth: 0.5,
     borderTopColor: '#f0f0f0',
   },
+  commentInputWrapper: {
+    marginBottom: 8,
+  },
+  commentInputRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 8,
+  },
+  currentUserAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#f0f0f0',
+  },
+  textInputContainer: {
+    flex: 1,
+    minHeight: 40,
+    maxHeight: 80,
+  },
   commentInput: {
+    flex: 1,
     backgroundColor: '#f5f5f5',
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 8,
     fontSize: 14,
-    maxHeight: 80,
-    marginBottom: 8,
+    textAlignVertical: 'top',
+  },
+  sendButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#007AFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sendButtonText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '600',
   },
   commentActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: 8,
   },
   cancelButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
   cancelButtonText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '500',
-  },
-  submitCommentButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  submitCommentText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
   },
   addCommentTrigger: {
     paddingVertical: 8,

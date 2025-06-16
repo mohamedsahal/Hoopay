@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, 
   Text, 
@@ -10,8 +10,10 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform
+  Platform,
+  Keyboard,
+  Animated,
+  Dimensions
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
@@ -24,10 +26,17 @@ import { useAuth } from '../contexts/AuthContext';
 import { BASE_URL, ENDPOINTS, getHeaders } from '../config/apiConfig';
 import ThreeDotsMenu from '../components/Community/OptionsMenu';
 import CommentCard from '../components/Community/CommentCard';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 const PostDetailScreen = ({ navigation, route }) => {
   const { postId } = route.params;
   const insets = useSafeAreaInsets();
+  const scrollViewRef = useRef(null);
+  const textInputRef = useRef(null);
+  const keyboardHeight = useRef(new Animated.Value(0)).current;
+  const commentInputHeight = useRef(new Animated.Value(50)).current;
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [screenHeight, setScreenHeight] = useState(Dimensions.get('window').height);
 
   // Use AuthContext for current user
   const { user: currentUser, isAuthenticated } = useAuth();
@@ -53,6 +62,67 @@ const PostDetailScreen = ({ navigation, route }) => {
   useEffect(() => {
     loadPost();
   }, [postId]);
+
+  // Keyboard listeners for enhanced UX
+  useEffect(() => {
+    const keyboardWillShowListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        setIsKeyboardVisible(true);
+        const keyboardHeightValue = e.endCoordinates.height;
+        
+        // Animate the keyboard height and input
+        Animated.parallel([
+          Animated.timing(keyboardHeight, {
+            toValue: keyboardHeightValue,
+            duration: Platform.OS === 'ios' ? e.duration : 250,
+            useNativeDriver: false,
+          }),
+          Animated.timing(commentInputHeight, {
+            toValue: Math.min(100, Math.max(50, textInputRef.current?.contentSize?.height || 50)),
+            duration: Platform.OS === 'ios' ? e.duration : 250,
+            useNativeDriver: false,
+          })
+        ]).start();
+
+        // Auto-scroll to bottom when keyboard shows
+        setTimeout(() => {
+          scrollViewRef.current?.scrollToEnd({ animated: true });
+        }, Platform.OS === 'ios' ? e.duration : 300);
+      }
+    );
+
+    const keyboardWillHideListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      (e) => {
+        setIsKeyboardVisible(false);
+        
+        // Animate keyboard hiding
+        Animated.parallel([
+          Animated.timing(keyboardHeight, {
+            toValue: 0,
+            duration: Platform.OS === 'ios' ? e.duration : 250,
+            useNativeDriver: false,
+          }),
+          Animated.timing(commentInputHeight, {
+            toValue: 50,
+            duration: Platform.OS === 'ios' ? e.duration : 250,
+            useNativeDriver: false,
+          })
+        ]).start();
+      }
+    );
+
+    const dimensionListener = Dimensions.addEventListener('change', ({ window }) => {
+      setScreenHeight(window.height);
+    });
+
+    return () => {
+      keyboardWillShowListener.remove();
+      keyboardWillHideListener.remove();
+      dimensionListener?.remove();
+    };
+  }, [keyboardHeight, commentInputHeight]);
 
   const getAuthToken = async () => {
     try {
@@ -110,14 +180,12 @@ const PostDetailScreen = ({ navigation, route }) => {
 
       if (data.success) {
         if (isPost) {
-          // Update post likes
           setPost(prev => ({
             ...prev,
             is_liked: data.data.is_liked,
             likes_count: data.data.likes_count
           }));
         } else {
-          // Update comment likes
           setPost(prev => ({
             ...prev,
             comments: prev.comments.map(comment => 
@@ -133,6 +201,7 @@ const PostDetailScreen = ({ navigation, route }) => {
     }
   };
 
+  // Enhanced addComment function
   const addComment = async () => {
     if (!newComment.trim()) {
       Alert.alert('Error', 'Please enter a comment');
@@ -153,14 +222,19 @@ const PostDetailScreen = ({ navigation, route }) => {
       const data = await response.json();
 
       if (data.success) {
-        // Add new comment to the list
         setPost(prev => ({
           ...prev,
-          comments: [...prev.comments, data.data],
+          comments: [...(prev.comments || []), data.data],
           comments_count: prev.comments_count + 1
         }));
         setNewComment('');
-        Alert.alert('Success', 'Comment added successfully!');
+        
+        // Reset input height
+        Animated.timing(commentInputHeight, {
+          toValue: 50,
+          duration: 200,
+          useNativeDriver: false,
+        }).start();
       } else {
         Alert.alert('Error', data.error || 'Failed to add comment');
       }
@@ -173,156 +247,94 @@ const PostDetailScreen = ({ navigation, route }) => {
   };
 
   const deletePost = async (postId) => {
-    try {
-      Alert.alert(
-        'Delete Post',
-        'Are you sure you want to delete this post? This action cannot be undone.',
-        [
-          {
-            text: 'Cancel',
-            style: 'cancel',
-          },
-          {
-            text: 'Delete',
-            style: 'destructive',
-            onPress: async () => {
-              try {
-                const token = await getAuthToken();
-                if (!token) {
-                  Alert.alert('Error', 'Please login to delete posts');
-                  return;
-                }
-
-                // Show loading indicator
-                Alert.alert('Deleting...', 'Please wait while we delete your post.');
-
-                const deleteEndpoint = `${BASE_URL}/mobile/discussions/${postId}`;
-                const response = await fetch(deleteEndpoint, {
-                  method: 'DELETE',
-                  headers: getHeaders(token),
-                });
-
-                const data = await response.json();
-
-                if (response.ok && data.success) {
-                  Alert.alert('Success', data.message || 'Post deleted successfully!', [
-                    {
-                      text: 'OK',
-                      onPress: () => navigation.goBack()
-                    }
-                  ]);
-                } else {
-                  // Handle different error codes
-                  let errorMessage = data.error || 'Failed to delete post';
-                  
-                  switch (data.code) {
-                    case 'UNAUTHORIZED':
-                      errorMessage = 'Please login to delete posts';
-                      break;
-                    case 'POST_NOT_FOUND':
-                      errorMessage = 'Post no longer exists';
-                      break;
-                    case 'UNAUTHORIZED_ACTION':
-                      errorMessage = 'You can only delete your own posts';
-                      break;
-                    case 'DELETE_FAILED':
-                      errorMessage = 'Failed to delete post. Please try again.';
-                      break;
-                  }
-                  
-                  Alert.alert('Error', errorMessage);
-                }
-              } catch (networkError) {
-                console.error('Network error deleting post:', networkError);
-                Alert.alert(
-                  'Network Error', 
-                  'Could not connect to server. Please check your internet connection and try again.'
-                );
+    Alert.alert(
+      'Delete Post',
+      'Are you sure you want to delete this post? This action cannot be undone.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const token = await getAuthToken();
+              if (!token) {
+                Alert.alert('Error', 'Please login to delete posts');
+                return;
               }
-            },
+
+              const deleteEndpoint = `${BASE_URL}/mobile/discussions/${postId}`;
+              const response = await fetch(deleteEndpoint, {
+                method: 'DELETE',
+                headers: getHeaders(token),
+              });
+
+              const data = await response.json();
+
+              if (response.ok && data.success) {
+                Alert.alert('Success', data.message || 'Post deleted successfully!', [
+                  {
+                    text: 'OK',
+                    onPress: () => navigation.goBack()
+                  }
+                ]);
+              } else {
+                Alert.alert('Error', data.error || 'Failed to delete post');
+              }
+            } catch (networkError) {
+              console.error('Network error deleting post:', networkError);
+              Alert.alert('Network Error', 'Could not connect to server. Please check your internet connection and try again.');
+            }
           },
-        ]
-      );
-    } catch (error) {
-      console.error('Error in delete post dialog:', error);
-      Alert.alert('Error', 'Something went wrong. Please try again.');
-    }
+        },
+      ]
+    );
   };
 
   const deleteComment = async (commentId) => {
-    try {
-      Alert.alert(
-        'Delete Comment',
-        'Are you sure you want to delete this comment? This action cannot be undone.',
-        [
-          {
-            text: 'Cancel',
-            style: 'cancel',
-          },
-          {
-            text: 'Delete',
-            style: 'destructive',
-            onPress: async () => {
-              try {
-                const token = await getAuthToken();
-                if (!token) {
-                  Alert.alert('Error', 'Please login to delete comments');
-                  return;
-                }
+    Alert.alert(
+      'Delete Comment',
+      'Are you sure you want to delete this comment?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const token = await getAuthToken();
+              const deleteEndpoint = `${BASE_URL}/mobile/discussions/comments/${commentId}`;
+              const response = await fetch(deleteEndpoint, {
+                method: 'DELETE',
+                headers: getHeaders(token),
+              });
 
-                const deleteEndpoint = `${BASE_URL}/mobile/discussions/comments/${commentId}`;
-                const response = await fetch(deleteEndpoint, {
-                  method: 'DELETE',
-                  headers: getHeaders(token),
-                });
+              const data = await response.json();
 
-                const data = await response.json();
-
-                if (response.ok && data.success) {
-                  // Remove comment from state immediately for better UX
-                  setPost(prev => ({
-                    ...prev,
-                    comments: prev.comments.filter(comment => comment.id !== commentId),
-                    comments_count: Math.max(0, prev.comments_count - 1)
-                  }));
-                  
-                  Alert.alert('Success', data.message || 'Comment deleted successfully!');
-                } else {
-                  // Handle different error codes
-                  let errorMessage = data.error || 'Failed to delete comment';
-                  
-                  switch (data.code) {
-                    case 'UNAUTHORIZED':
-                      errorMessage = 'Please login to delete comments';
-                      break;
-                    case 'COMMENT_NOT_FOUND':
-                      errorMessage = 'Comment no longer exists';
-                      break;
-                    case 'UNAUTHORIZED_ACTION':
-                      errorMessage = 'You can only delete your own comments';
-                      break;
-                    case 'DELETE_FAILED':
-                      errorMessage = 'Failed to delete comment. Please try again.';
-                      break;
-                  }
-                  
-                  Alert.alert('Error', errorMessage);
-                }
-              } catch (networkError) {
-                console.error('Network error deleting comment:', networkError);
-                Alert.alert(
-                  'Network Error', 
-                  'Could not connect to server. Please check your internet connection and try again.'
-                );
+              if (response.ok && data.success) {
+                setPost(prev => ({
+                  ...prev,
+                  comments: prev.comments.filter(comment => comment.id !== commentId),
+                  comments_count: Math.max(0, prev.comments_count - 1)
+                }));
+                Alert.alert('Success', data.message || 'Comment deleted successfully!');
+              } else {
+                Alert.alert('Error', data.error || 'Failed to delete comment');
               }
-            },
+            } catch (networkError) {
+              console.error('Network error deleting comment:', networkError);
+              Alert.alert('Network Error', 'Could not connect to server. Please check your internet connection and try again.');
+            }
           },
-        ]
-      );
-    } catch (error) {
-      console.error('Error in delete comment dialog:', error);
-      Alert.alert('Error', 'Something went wrong. Please try again.');
-    }
+        },
+      ]
+    );
   };
 
   const toggleFollow = async (userId) => {
@@ -347,6 +359,18 @@ const PostDetailScreen = ({ navigation, route }) => {
     } catch (error) {
       console.error('Error toggling follow:', error);
     }
+  };
+
+  // Handle input content size change for dynamic height
+  const handleContentSizeChange = (event) => {
+    const { height } = event.nativeEvent.contentSize;
+    const newHeight = Math.min(100, Math.max(50, height + 10));
+    
+    Animated.timing(commentInputHeight, {
+      toValue: newHeight,
+      duration: 100,
+      useNativeDriver: false,
+    }).start();
   };
 
   if (loading) {
@@ -382,8 +406,6 @@ const PostDetailScreen = ({ navigation, route }) => {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar style={isDarkMode ? "light" : "dark"} />
       
-
-      
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top || 30, backgroundColor: colors.headerBackground }]}>
         <TouchableOpacity 
@@ -396,14 +418,18 @@ const PostDetailScreen = ({ navigation, route }) => {
         <View style={styles.headerSpacer} />
       </View>
 
-      <KeyboardAvoidingView 
-        style={styles.keyboardContainer}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      {/* Main Content with KeyboardAwareScrollView */}
+      <KeyboardAwareScrollView
+        style={styles.scrollContainer}
+        contentContainerStyle={styles.scrollContent}
+        extraHeight={20}
+        enableOnAndroid={true}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
           {/* Post Content */}
           <View style={[styles.postCard, { backgroundColor: colors.cardBackground }]}>
-            {post.is_pinned && (
+            {post?.is_pinned && (
               <View style={styles.pinnedBadge}>
                 <Text style={styles.pinnedText}>📌 Pinned</Text>
               </View>
@@ -412,12 +438,12 @@ const PostDetailScreen = ({ navigation, route }) => {
             <View style={styles.postHeader}>
               <TouchableOpacity style={styles.userInfo}>
                 <Image 
-                  source={post.user.photo_path ? { uri: post.user.photo_path } : require('../assets/images/profile.jpg')}
+                  source={post?.user?.photo_path ? { uri: post.user.photo_path } : require('../assets/images/profile.jpg')}
                   style={styles.avatar}
                 />
                 <View>
-                  <Text style={[styles.userName, { color: colors.text }]}>{post.user.name}</Text>
-                  <Text style={[styles.postTime, { color: colors.textSecondary }]}>{post.created_at}</Text>
+                  <Text style={[styles.userName, { color: colors.text }]}>{post?.user?.name}</Text>
+                  <Text style={[styles.postTime, { color: colors.textSecondary }]}>{post?.created_at}</Text>
                 </View>
               </TouchableOpacity>
               
@@ -425,51 +451,51 @@ const PostDetailScreen = ({ navigation, route }) => {
                 {/* Three dots menu for post options */}
                 <ThreeDotsMenu
                   currentUser={currentUser}
-                  itemOwner={post.user}
+                  itemOwner={post?.user}
                   options={[
                     {
                       title: 'Delete Post',
                       icon: 'delete',
                       destructive: true,
-                      onPress: () => deletePost(post.id)
+                      onPress: () => deletePost(post?.id)
                     }
                   ]}
                   size={24}
                   color={colors.textSecondary}
                 />
                 
-                {!post.user.is_self && (
+                {!post?.user?.is_self && (
                   <TouchableOpacity 
-                    style={[styles.followButton, post.user.is_following && styles.followingButton]}
-                    onPress={() => toggleFollow(post.user.id)}
+                    style={[styles.followButton, post?.user?.is_following && styles.followingButton]}
+                    onPress={() => toggleFollow(post?.user?.id)}
                   >
-                    <Text style={[styles.followButtonText, post.user.is_following && styles.followingButtonText]}>
-                      {post.user.is_following ? 'Following' : 'Follow'}
+                    <Text style={[styles.followButtonText, post?.user?.is_following && styles.followingButtonText]}>
+                      {post?.user?.is_following ? 'Following' : 'Follow'}
                     </Text>
                   </TouchableOpacity>
                 )}
               </View>
             </View>
 
-            <Text style={[styles.postTitle, { color: colors.text }]}>{post.title}</Text>
-            <Text style={[styles.postContent, { color: colors.textSecondary }]}>{post.content}</Text>
+            <Text style={[styles.postTitle, { color: colors.text }]}>{post?.title}</Text>
+            <Text style={[styles.postContent, { color: colors.textSecondary }]}>{post?.content}</Text>
             
-            {post.image_path && (
+            {post?.image_path && (
               <Image source={{ uri: post.image_path }} style={styles.postImage} />
             )}
 
             <View style={styles.postActions}>
               <TouchableOpacity 
                 style={styles.actionButton}
-                onPress={() => toggleLike(post.id, true)}
+                onPress={() => toggleLike(post?.id, true)}
               >
-                <Text style={[styles.actionText, post.is_liked && styles.likedText]}>
-                  {post.is_liked ? '❤️' : '🤍'} {post.likes_count}
+                <Text style={[styles.actionText, post?.is_liked && styles.likedText]}>
+                  {post?.is_liked ? '❤️' : '🤍'} {post?.likes_count || 0}
                 </Text>
               </TouchableOpacity>
               
               <Text style={[styles.actionText, { color: colors.textSecondary }]}>
-                💬 {post.comments_count}
+                💬 {post?.comments_count || 0}
               </Text>
             </View>
           </View>
@@ -477,10 +503,10 @@ const PostDetailScreen = ({ navigation, route }) => {
           {/* Comments Section */}
           <View style={[styles.commentsSection, { backgroundColor: colors.cardBackground }]}>
             <Text style={[styles.commentsTitle, { color: colors.text }]}>
-              Comments ({post.comments?.length || 0})
+              Comments ({post?.comments?.length || 0})
             </Text>
             
-            {post.comments && post.comments.length > 0 ? (
+            {post?.comments && post.comments.length > 0 ? (
               post.comments.map((comment) => (
                 <CommentCard
                   key={comment.id}
@@ -490,7 +516,6 @@ const PostDetailScreen = ({ navigation, route }) => {
                   onDelete={async (commentId) => {
                     try {
                       const token = await getAuthToken();
-                      // Use the correct pattern like post delete
                       const deleteEndpoint = `${BASE_URL}/mobile/discussions/comments/${commentId}`;
                       const response = await fetch(deleteEndpoint, {
                         method: 'DELETE',
@@ -521,33 +546,60 @@ const PostDetailScreen = ({ navigation, route }) => {
               </Text>
             )}
           </View>
-        </ScrollView>
+        {/* Extra space at bottom for input */}
+        <View style={{ height: 100 }} />
+      </KeyboardAwareScrollView>
 
-        {/* Add Comment Section */}
-        <View style={[styles.addCommentSection, { backgroundColor: colors.cardBackground }]}>
-          <TextInput
-            style={[styles.commentInput, { backgroundColor: colors.surface, color: colors.text }]}
-            placeholder="Add a comment..."
-            placeholderTextColor={colors.textSecondary}
-            value={newComment}
-            onChangeText={setNewComment}
-            multiline
-            maxLength={1000}
+      {/* Facebook-style Comment Input - Fixed at bottom */}
+      <View style={[styles.commentInputContainer, { backgroundColor: colors.cardBackground }]}>
+        <View style={styles.commentInputWrapper}>
+          <Image 
+            source={currentUser?.photo_path ? { uri: currentUser.photo_path } : require('../assets/images/profile.jpg')}
+            style={styles.currentUserAvatar}
           />
+          <Animated.View style={[styles.textInputContainer, { height: commentInputHeight }]}>
+            <TextInput
+              ref={textInputRef}
+              style={[
+                styles.commentTextInput, 
+                { 
+                  backgroundColor: colors.surface, 
+                  color: colors.text
+                }
+              ]}
+              placeholder="Add a comment..."
+              placeholderTextColor={colors.textSecondary}
+              value={newComment}
+              onChangeText={setNewComment}
+              multiline
+              maxLength={1000}
+              textAlignVertical="center"
+              onContentSizeChange={handleContentSizeChange}
+              blurOnSubmit={false}
+              returnKeyType={Platform.OS === 'ios' ? 'default' : 'send'}
+              onSubmitEditing={Platform.OS === 'ios' ? undefined : addComment}
+            />
+          </Animated.View>
           <TouchableOpacity 
-            style={[styles.submitCommentButton, { backgroundColor: colors.primary }]}
+            style={[
+              styles.sendButton, 
+              { 
+                backgroundColor: (newComment.trim() && !submittingComment) ? colors.primary : colors.textSecondary,
+                opacity: (newComment.trim() && !submittingComment) ? 1 : 0.5
+              }
+            ]}
             onPress={addComment}
             disabled={submittingComment || !newComment.trim()}
           >
             {submittingComment ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
-              <Text style={styles.submitCommentText}>Post</Text>
+              <MaterialIcons name="send" size={18} color="#FFFFFF" />
             )}
           </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+      </View>
+        </SafeAreaView>
   );
 };
 
@@ -599,12 +651,16 @@ const styles = StyleSheet.create({
   headerSpacer: {
     width: 50,
   },
-  keyboardContainer: {
+  contentContainer: {
     flex: 1,
+    position: 'relative',
   },
   scrollContainer: {
     flex: 1,
+  },
+  scrollContent: {
     paddingHorizontal: 20,
+    paddingTop: 10,
   },
   postCard: {
     backgroundColor: '#FFFFFF',
@@ -726,7 +782,6 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     color: Colors.text,
   },
-
   noCommentsText: {
     fontSize: 14,
     color: Colors.textSecondary,
@@ -734,44 +789,52 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     paddingVertical: 20,
   },
-  addCommentSection: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    padding: 15,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E9ECEF',
-  },
-  commentInput: {
-    flex: 1,
-    minHeight: 40,
-    maxHeight: 100,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: '#F8F9FA',
-    marginRight: 10,
-    fontSize: 14,
-    textAlignVertical: 'top',
-  },
-  submitCommentButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    minWidth: 60,
-  },
-  submitCommentText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
   postHeaderActions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+  },
+  
+  // Facebook-style comment input styles
+  commentInputContainer: {
+    borderTopWidth: 1,
+    borderTopColor: '#E9ECEF',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    paddingBottom: Platform.OS === 'ios' ? 25 : 10,
+  },
+  commentInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 10,
+  },
+  currentUserAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#f0f0f0',
+  },
+  textInputContainer: {
+    flex: 1,
+    minHeight: 40,
+    maxHeight: 100,
+  },
+  commentTextInput: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: '#F8F9FA',
+    fontSize: 16,
+    lineHeight: 20,
+  },
+  sendButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#007AFF',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 
