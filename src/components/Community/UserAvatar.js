@@ -21,24 +21,6 @@ const UserAvatar = ({ user, size = 40, style = {} }) => {
     return (names[0][0] + names[names.length - 1][0]).toUpperCase();
   };
 
-  // Generate a unique color for each user based on their name
-  const getUserColor = (name) => {
-    if (!name) return '#4CAF50';
-    
-    const colors = [
-      '#4CAF50', '#2196F3', '#FF9800', '#E91E63', '#9C27B0',
-      '#3F51B5', '#00BCD4', '#FF5722', '#795548', '#607D8B',
-      '#F44336', '#FFEB3B', '#8BC34A', '#FFC107', '#673AB7'
-    ];
-    
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) {
-      hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    
-    return colors[Math.abs(hash) % colors.length];
-  };
-
   // Function to normalize URL - handle relative paths and add base URL if needed
   const normalizeImageUrl = (url) => {
     if (!url || typeof url !== 'string') {
@@ -172,8 +154,8 @@ const UserAvatar = ({ user, size = 40, style = {} }) => {
     );
   }
 
-  // Fallback to initials with unique color
-  const backgroundColor = getUserColor(user?.name);
+  // Fallback to initials with green color (like profile screen)
+  const backgroundColor = '#4CAF50'; // Always use green color
   
   if (__DEV__) {
     console.log('UserAvatar: Falling back to initials for:', user?.name, 'Color:', backgroundColor);
