@@ -5,6 +5,13 @@ import { BASE_URL } from '../../config/apiConfig';
 const UserAvatar = ({ user, size = 40, style = {} }) => {
   const [imageError, setImageError] = useState(false);
   
+  // Enhanced debugging to see what data we're getting
+  if (__DEV__) {
+    console.log('UserAvatar Debug - Full User Object:', JSON.stringify(user, null, 2));
+    console.log('UserAvatar Debug - BASE_URL:', BASE_URL);
+    console.log('UserAvatar Debug - Size:', size);
+  }
+  
   const getInitials = (name) => {
     if (!name) return '?';
     const names = name.trim().split(' ');
@@ -14,15 +21,45 @@ const UserAvatar = ({ user, size = 40, style = {} }) => {
     return (names[0][0] + names[names.length - 1][0]).toUpperCase();
   };
 
+  // Generate a unique color for each user based on their name
+  const getUserColor = (name) => {
+    if (!name) return '#4CAF50';
+    
+    const colors = [
+      '#4CAF50', '#2196F3', '#FF9800', '#E91E63', '#9C27B0',
+      '#3F51B5', '#00BCD4', '#FF5722', '#795548', '#607D8B',
+      '#F44336', '#FFEB3B', '#8BC34A', '#FFC107', '#673AB7'
+    ];
+    
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    
+    return colors[Math.abs(hash) % colors.length];
+  };
+
   // Function to normalize URL - handle relative paths and add base URL if needed
   const normalizeImageUrl = (url) => {
-    if (!url || typeof url !== 'string') return null;
+    if (!url || typeof url !== 'string') {
+      if (__DEV__) {
+        console.log('UserAvatar: normalizeImageUrl - Invalid URL:', url);
+      }
+      return null;
+    }
     
     // Clean the URL
     const cleanUrl = url.trim();
     
+    if (__DEV__) {
+      console.log('UserAvatar: normalizeImageUrl - Cleaning URL:', cleanUrl);
+    }
+    
     // If it's already a complete URL, return as is
     if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
+      if (__DEV__) {
+        console.log('UserAvatar: normalizeImageUrl - Complete URL found:', cleanUrl);
+      }
       return cleanUrl;
     }
     
@@ -32,12 +69,18 @@ const UserAvatar = ({ user, size = 40, style = {} }) => {
     // For profile-photos/ paths, construct the full URL
     if (cleanUrl.startsWith('profile-photos/')) {
       const fullUrl = `${baseDomain}/storage/${cleanUrl}`;
+      if (__DEV__) {
+        console.log('UserAvatar: normalizeImageUrl - Profile photos URL:', fullUrl);
+      }
       return fullUrl;
     }
     
     // If it's a relative path starting with /, add base URL
     if (cleanUrl.startsWith('/')) {
       const fullUrl = `${baseDomain}${cleanUrl}`;
+      if (__DEV__) {
+        console.log('UserAvatar: normalizeImageUrl - Relative path URL:', fullUrl);
+      }
       return fullUrl;
     }
     
@@ -45,17 +88,26 @@ const UserAvatar = ({ user, size = 40, style = {} }) => {
     if (!cleanUrl.includes('/')) {
       // Assume it's in a storage/images directory
       const fullUrl = `${baseDomain}/storage/images/${cleanUrl}`;
+      if (__DEV__) {
+        console.log('UserAvatar: normalizeImageUrl - Filename only URL:', fullUrl);
+      }
       return fullUrl;
     }
     
     // For other relative paths, add base domain
     const fullUrl = `${baseDomain}/storage/${cleanUrl}`;
+    if (__DEV__) {
+      console.log('UserAvatar: normalizeImageUrl - Default relative URL:', fullUrl);
+    }
     return fullUrl;
   };
 
   // Enhanced image property checking with more comprehensive support
   const getImageUrl = () => {
     if (!user) {
+      if (__DEV__) {
+        console.log('UserAvatar: getImageUrl - No user provided');
+      }
       return null;
     }
 
@@ -73,17 +125,32 @@ const UserAvatar = ({ user, size = 40, style = {} }) => {
 
     for (const prop of imageProperties) {
       const rawUrl = user[prop];
+      if (__DEV__) {
+        console.log(`UserAvatar: getImageUrl - Checking ${prop}:`, rawUrl);
+      }
       if (rawUrl && typeof rawUrl === 'string' && rawUrl.trim()) {
         const normalizedUrl = normalizeImageUrl(rawUrl);
         if (normalizedUrl) {
+          if (__DEV__) {
+            console.log(`UserAvatar: getImageUrl - Found image at ${prop}:`, normalizedUrl);
+          }
           return normalizedUrl;
         }
       }
+    }
+    
+    if (__DEV__) {
+      console.log('UserAvatar: getImageUrl - No valid image found for user:', user?.name);
     }
     return null;
   };
 
   const imageUrl = getImageUrl();
+  
+  if (__DEV__) {
+    console.log('UserAvatar: Final imageUrl:', imageUrl);
+    console.log('UserAvatar: imageError:', imageError);
+  }
   
   // Show image if available and no error occurred
   if (imageUrl && !imageError) {
@@ -96,19 +163,29 @@ const UserAvatar = ({ user, size = 40, style = {} }) => {
           console.log('UserAvatar: Error details:', error.nativeEvent?.error);
           setImageError(true);
         }}
-
+        onLoad={() => {
+          if (__DEV__) {
+            console.log('UserAvatar: Successfully loaded image for:', user?.name, imageUrl);
+          }
+        }}
       />
     );
   }
 
-  // Fallback to initials
+  // Fallback to initials with unique color
+  const backgroundColor = getUserColor(user?.name);
+  
+  if (__DEV__) {
+    console.log('UserAvatar: Falling back to initials for:', user?.name, 'Color:', backgroundColor);
+  }
+  
   return (
     <View style={[
       {
         width: size, 
         height: size, 
         borderRadius: size / 2,
-        backgroundColor: '#4CAF50', // Green background
+        backgroundColor,
         justifyContent: 'center',
         alignItems: 'center'
       }, 

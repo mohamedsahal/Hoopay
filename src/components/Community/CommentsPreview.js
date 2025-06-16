@@ -15,6 +15,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import Colors from '../../constants/Colors';
 import ThreeDotsMenu from './OptionsMenu';
+import UserAvatar from './UserAvatar';
 import { BASE_URL, ENDPOINTS, getHeaders } from '../../config/apiConfig';
 import * as SecureStore from 'expo-secure-store';
 
@@ -231,8 +232,9 @@ const CommentsPreview = ({
         <View key={comment.id} style={styles.commentItem}>
           <View style={styles.commentHeader}>
             <View style={styles.commentUserSection}>
-              <Image 
-                source={comment.user.photo_path ? { uri: comment.user.photo_path } : require('../../assets/images/profile.jpg')}
+              <UserAvatar 
+                user={comment.user}
+                size={28}
                 style={styles.commentAvatar}
               />
               <View style={styles.commentContent}>
@@ -282,8 +284,9 @@ const CommentsPreview = ({
         <View style={styles.addCommentSection}>
           <View style={styles.commentInputWrapper}>
             <View style={styles.commentInputRow}>
-              <Image 
-                source={currentUser?.photo_path ? { uri: currentUser.photo_path } : require('../../assets/images/profile.jpg')}
+              <UserAvatar 
+                user={currentUser}
+                size={28}
                 style={styles.currentUserAvatar}
               />
               <Animated.View style={[styles.textInputContainer, { height: commentInputHeight }]}>

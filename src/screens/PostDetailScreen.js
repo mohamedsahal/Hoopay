@@ -27,6 +27,7 @@ import { BASE_URL, ENDPOINTS, getHeaders } from '../config/apiConfig';
 import ThreeDotsMenu from '../components/Community/OptionsMenu';
 import CommentCard from '../components/Community/CommentCard';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import UserAvatar from '../components/Community/UserAvatar';
 
 const PostDetailScreen = ({ navigation, route }) => {
   const { postId } = route.params;
@@ -437,8 +438,9 @@ const PostDetailScreen = ({ navigation, route }) => {
             
             <View style={styles.postHeader}>
               <TouchableOpacity style={styles.userInfo}>
-                <Image 
-                  source={post?.user?.photo_path ? { uri: post.user.photo_path } : require('../assets/images/profile.jpg')}
+                <UserAvatar 
+                  user={post?.user}
+                  size={50}
                   style={styles.avatar}
                 />
                 <View>
@@ -553,8 +555,9 @@ const PostDetailScreen = ({ navigation, route }) => {
       {/* Facebook-style Comment Input - Fixed at bottom */}
       <View style={[styles.commentInputContainer, { backgroundColor: colors.cardBackground }]}>
         <View style={styles.commentInputWrapper}>
-          <Image 
-            source={currentUser?.photo_path ? { uri: currentUser.photo_path } : require('../assets/images/profile.jpg')}
+          <UserAvatar 
+            user={currentUser}
+            size={40}
             style={styles.currentUserAvatar}
           />
           <Animated.View style={[styles.textInputContainer, { height: commentInputHeight }]}>

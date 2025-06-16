@@ -4,6 +4,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import Colors from '../../constants/Colors';
 import ThreeDotsMenu from './OptionsMenu';
+import UserAvatar from './UserAvatar';
 
 const CommentCard = ({ 
   comment, 
@@ -65,8 +66,9 @@ const CommentCard = ({
     <View style={[styles.commentItem, style]}>
       <View style={styles.commentHeader}>
         <View style={styles.commentUserSection}>
-          <Image 
-            source={comment.user.photo_path ? { uri: comment.user.photo_path } : require('../../assets/images/profile.jpg')}
+          <UserAvatar 
+            user={comment.user}
+            size={35}
             style={styles.commentAvatar}
           />
           <View style={styles.commentUserInfo}>
