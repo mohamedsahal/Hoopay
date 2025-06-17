@@ -13,6 +13,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Dimensions,
+  Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
@@ -212,6 +213,30 @@ const UnifiedKycScreen: React.FC<UnifiedKycScreenProps> = ({ navigation }) => {
     
     setShowDatePicker(false);
     setFocusedDateField(null);
+  };
+
+  const openWhatsApp = async () => {
+    const phoneNumber = '+252905251111';
+    const message = 'Hello, I need assistance with my KYC verification process.';
+    const url = `whatsapp://send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
+    
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        // Fallback to web WhatsApp
+        const webUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+        await Linking.openURL(webUrl);
+      }
+    } catch (error) {
+      console.error('Error opening WhatsApp:', error);
+      Alert.alert(
+        'Unable to Open WhatsApp',
+        'Please contact support at +252905251111 or install WhatsApp to use this feature.',
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   const requestPermissions = async (type: 'camera' | 'library') => {
@@ -894,16 +919,12 @@ const UnifiedKycScreen: React.FC<UnifiedKycScreenProps> = ({ navigation }) => {
                     backgroundColor: colors.surface || colors.background
                   }]}
                   onPress={() => {
-                    // Add contact support functionality
                     Alert.alert(
                       'Contact Support',
-                      'For urgent matters, please contact our support team.',
+                      'Need help with your KYC verification? Contact our support team via WhatsApp.',
                       [
                         { text: 'Cancel', style: 'cancel' },
-                        { text: 'Contact Support', onPress: () => {
-                          // Add support contact logic here
-                          console.log('Contact support pressed');
-                        }}
+                        { text: 'Open WhatsApp', onPress: openWhatsApp }
                       ]
                     );
                   }}

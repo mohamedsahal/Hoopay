@@ -25,6 +25,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import * as SecureStore from 'expo-secure-store';
 import api from '../services/api';
 import Colors from '../constants/Colors';
+import UserAvatar from '../components/Community/UserAvatar';
 
 // Action Button Component
 const ActionButton = ({ icon, title, subtitle, onPress, color }) => (
@@ -549,11 +550,23 @@ const HomeScreen = () => {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.userSection}>
-          <View style={[styles.profileImageContainer, { borderColor: colors.primary }]}>
-            <View style={[styles.placeholderImage, { backgroundColor: colors.gradientStart }]}>
-              <Text style={styles.placeholderText}>{userInitials}</Text>
-            </View>
-          </View>
+          <TouchableOpacity 
+            style={[styles.profileImageContainer, { borderColor: colors.primary }]}
+            onPress={() => navigation.navigate('Profile')}
+            activeOpacity={0.7}
+          >
+            {user && (user.avatar_url || user.photo_url || user.photo_path) ? (
+              <UserAvatar 
+                user={user} 
+                size={44} 
+                style={styles.dynamicAvatar}
+              />
+            ) : (
+              <View style={[styles.placeholderImage, { backgroundColor: colors.gradientStart }]}>
+                <Text style={styles.placeholderText}>{userInitials}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
           <View style={styles.greetingContainer}>
             <Text style={[styles.greeting, { color: colors.text }]}>
               Welcome, <Text style={[styles.username, { color: colors.primary }]}>
@@ -823,6 +836,9 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: 'white',
+  },
+  dynamicAvatar: {
+    borderWidth: 0, // Remove border since parent container already has border
   },
   greetingContainer: {
     justifyContent: 'center',
