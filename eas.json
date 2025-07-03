@@ -24,11 +24,17 @@
       }
     },
     "production": {
+      "node": "20.11.1",
+      "env": {
+        "NODE_ENV": "production"
+      },
       "android": {
-        "buildType": "app-bundle"
+        "buildType": "app-bundle",
+        "image": "latest"
       },
       "ios": {
-        "simulator": false
+        "simulator": false,
+        "image": "latest"
       }
     }
   },
