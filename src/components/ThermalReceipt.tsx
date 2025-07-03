@@ -68,7 +68,8 @@ const ThermalReceipt: React.FC<ThermalReceiptProps> = ({
   additionalInfo = [],
   children
 }) => {
-  const { theme } = useTheme();
+  const { colors } = useTheme();
+  const theme = colors; // Create alias for backward compatibility
 
   const getStatusColor = () => {
     const lowerStatus = status.toLowerCase();
@@ -92,8 +93,41 @@ const ThermalReceipt: React.FC<ThermalReceiptProps> = ({
   };
 
   const formatAmount = (value: string | number) => {
-    const num = typeof value === 'string' ? parseFloat(value) : value;
-    return isNaN(num) ? '0.00' : num.toFixed(2);
+    // Handle null/undefined values
+    if (value === null || value === undefined) {
+      return '0.00';
+    }
+    
+    // Convert to number more safely
+    let num: number;
+    if (typeof value === 'string') {
+      // Handle string values - remove any non-numeric characters except dots and minus
+      const cleanValue = value.replace(/[^0-9.-]/g, '');
+      num = parseFloat(cleanValue);
+    } else {
+      num = Number(value);
+    }
+    
+    // Check if the conversion resulted in a valid number
+    if (isNaN(num)) {
+      return '0.00';
+    }
+    
+    // Check if this might be an amount in cents (common in APIs)
+    // If the number is very large (>= 10000) and appears to be in cents, convert it
+    // This is a heuristic: amounts >= $100.00 (10000 cents) are likely in cents format
+    let finalAmount = num;
+    if (num >= 10000 && Number.isInteger(num)) {
+      // Check if dividing by 100 gives a reasonable currency amount
+      const possibleDollarAmount = num / 100;
+      
+      // Use the cents conversion if it seems reasonable
+      finalAmount = possibleDollarAmount;
+    }
+    
+    // Format to 2 decimal places
+    const result = Math.abs(finalAmount).toFixed(2);
+    return result;
   };
 
   const formatDate = () => {

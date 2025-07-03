@@ -60,38 +60,20 @@ const ReferralDashboardScreen = ({ navigation }) => {
       setIsLoading(true);
       
       // First check if user is opted in
-      console.log('Checking opt-in status...');
       const referralInfo = await referralService.getReferralInfo();
       
       if (!referralInfo.success || !referralInfo.data || !referralInfo.data.isOptedIn) {
-        console.log('User not opted in, redirecting to onboarding...');
         // User not opted in, redirect to onboarding
         navigation.replace('ReferralOnboarding');
         return;
       }
       
-      console.log('User is opted in, loading data...');
       // User is opted in, proceed with loading data
-      await debugAPIEndpoints();
       await loadReferralData();
     } catch (error) {
       console.error('Error checking opt-in status:', error);
       // If there's an error, assume user is not opted in
-      console.log('Error occurred, redirecting to onboarding...');
       navigation.replace('ReferralOnboarding');
-    }
-  };
-
-  // Debug function to check API endpoints
-  const debugAPIEndpoints = async () => {
-    console.log('=== API ENDPOINT DEBUG ===');
-    console.log('Base URL:', referralService.baseURL);
-    
-    try {
-      const headers = await referralService.getAuthHeaders();
-      console.log('Auth headers available:', !!headers.Authorization);
-    } catch (error) {
-      console.log('Auth headers error:', error.message);
     }
   };
 
@@ -100,54 +82,35 @@ const ReferralDashboardScreen = ({ navigation }) => {
       setIsLoading(true);
       
       // Load referral info and stats
-      console.log('Loading referral info...');
       const infoResult = await referralService.getReferralInfo();
       if (infoResult.success) {
         setReferralData(infoResult.data);
         setStats(referralService.calculateStats(infoResult.data));
-        console.log('Referral info loaded successfully');
-      } else {
-        console.log('Failed to load referral info:', infoResult.message);
       }
 
       // Load referrals list
-      console.log('Loading referrals...');
       const referralsResult = await referralService.getReferrals(1, 10);
       if (referralsResult.success) {
         setReferrals(referralsResult.data.data || []);
-        console.log('Referrals loaded:', referralsResult.data.data?.length || 0, 'items');
       } else {
-        console.log('Failed to load referrals:', referralsResult.message);
         setReferrals([]);
       }
 
       // Load commissions
-      console.log('Loading commissions...');
       const commissionsResult = await referralService.getCommissions(1, 15);
       if (commissionsResult.success) {
         const commissionData = commissionsResult.data.data || [];
         setCommissions(commissionData);
-        console.log('Commissions loaded:', commissionData.length, 'items');
-        if (commissionData.length > 0) {
-          console.log('Sample commission:', commissionData[0]);
-        }
       } else {
-        console.log('Failed to load commissions:', commissionsResult.message);
         setCommissions([]);
       }
 
       // Load withdrawals
-      console.log('Loading withdrawals...');
       const withdrawalsResult = await referralService.getWithdrawals(1, 15);
       if (withdrawalsResult.success) {
         const withdrawalData = withdrawalsResult.data.data || [];
         setWithdrawals(withdrawalData);
-        console.log('Withdrawals loaded:', withdrawalData.length, 'items');
-        if (withdrawalData.length > 0) {
-          console.log('Sample withdrawal:', withdrawalData[0]);
-        }
       } else {
-        console.log('Failed to load withdrawals:', withdrawalsResult.message);
         setWithdrawals([]);
       }
 
@@ -626,19 +589,9 @@ const ReferralDashboardScreen = ({ navigation }) => {
         <Text style={[styles.headerTitle, { color: theme.text }]}>Referral Dashboard</Text>
         <TouchableOpacity
           style={styles.menuButton}
-          onPress={() => {
-            Alert.alert(
-              'Debug Options',
-              'Choose an option',
-              [
-                { text: 'Refresh Data', onPress: loadReferralData },
-                { text: 'Debug API', onPress: debugAPIEndpoints },
-                { text: 'Cancel', style: 'cancel' }
-              ]
-            );
-          }}
+          onPress={onRefresh}
         >
-          <Ionicons name="ellipsis-vertical" size={24} color={theme.text} />
+          <Ionicons name="refresh" size={24} color={theme.text} />
         </TouchableOpacity>
       </View>
 

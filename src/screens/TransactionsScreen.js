@@ -506,7 +506,6 @@ const TransactionsScreen = ({ navigation }) => {
 
   // Handle transaction press - show receipt modal
   const handleTransactionPress = (transaction) => {
-    console.log('Transaction pressed:', transaction.id);
     setSelectedTransaction(transaction);
     setReceiptModalVisible(true);
   };
@@ -759,7 +758,7 @@ const TransactionsScreen = ({ navigation }) => {
       
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.backButton}>
           <MaterialIcons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Transactions</Text>

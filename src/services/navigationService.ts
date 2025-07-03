@@ -24,8 +24,21 @@ export const goBack = () => {
   }
 };
 
+// Function to reset navigation to login screen (for session expiry)
+export const resetToLogin = () => {
+  if (navigator) {
+    navigator.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+      })
+    );
+  }
+};
+
 export default {
   navigate,
   goBack,
   setNavigator,
+  resetToLogin,
 }; 

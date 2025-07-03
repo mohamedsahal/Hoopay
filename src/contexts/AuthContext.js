@@ -2,6 +2,7 @@ import React, { createContext, useState, useContext, useEffect, useCallback } fr
 import * as SecureStore from 'expo-secure-store';
 import { CommonActions } from '@react-navigation/native';
 import api from '../services/api';
+import { sessionExpiryHandler } from '../services/sessionExpiryHandler';
 
 const AuthContext = createContext(null);
 
@@ -228,6 +229,36 @@ export const AuthProvider = ({ children }) => {
     }
   }, [setAuthState]);
 
+  // Add session expiry handler method
+  const handleSessionExpiry = useCallback(async (showAlert = true, alertMessage) => {
+    try {
+      console.log('AuthContext: Handling session expiry - clearing all auth data including biometric credentials');
+      
+      // Use the global session expiry handler (clears all auth data including biometric)
+      await sessionExpiryHandler.handleSessionExpiry(showAlert, alertMessage);
+      
+      // Update auth state to reflect the logout
+      setAuthState({
+        authToken: null,
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        isFromLogout: false, // This is automatic logout, not user-initiated
+        error: null
+      });
+    } catch (error) {
+      console.error('Error in AuthContext session expiry handler:', error);
+      // Even if there's an error, clear the auth state
+      setAuthState({
+        authToken: null,
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: null
+      });
+    }
+  }, [setAuthState]);
+
   useEffect(() => {
     checkAuthState();
   }, [checkAuthState]);
@@ -238,7 +269,8 @@ export const AuthProvider = ({ children }) => {
     logout,
     updateUser,
     refreshUserData,
-    checkAuthState
+    checkAuthState,
+    handleSessionExpiry // Add session expiry handler to context
   };
 
   return (

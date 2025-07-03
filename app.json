@@ -2,7 +2,7 @@
   "expo": {
     "name": "Hoopay Wallet",
     "slug": "HoopayNew",
-    "owner": "exaliye",
+    "owner": "Hoopay",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/ic_launcher.png",
@@ -19,9 +19,9 @@
     "ios": {
       "icon": "./assets/ic_launcher.png",
       "supportsTablet": true,
-      "bundleIdentifier": "com.exaliye.HoopayNew",
+      "bundleIdentifier": "com.hoopay.wallet",
       "googleServicesFile": "./GoogleService-Info.plist",
-      "deploymentTarget": "13.4",
+      "deploymentTarget": "15",
       "infoPlist": {
         "CFBundleName": "Hoopay Wallet",
         "CFBundleDisplayName": "Hoopay Wallet",
@@ -38,7 +38,7 @@
       },
       "package": "com.exaliye.HoopayNew",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 13,
+      "versionCode": 20,
       "compileSdkVersion": 34,
       "targetSdkVersion": 34,
       "minSdkVersion": 23,

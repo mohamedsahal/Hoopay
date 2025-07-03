@@ -27,6 +27,7 @@ import api from '../services/api';
 import Colors from '../constants/Colors';
 import UserAvatar from '../components/Community/UserAvatar';
 
+
 // Action Button Component
 const ActionButton = ({ icon, title, subtitle, onPress, color }) => (
   <TouchableOpacity 
@@ -268,6 +269,9 @@ const HomeScreen = () => {
   const [recentTransactions, setRecentTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const tabBarHeight = useTabBarSafeHeight();
+  
+  
+
   
   // Use fallback colors and theme if context is not available
   let colors, isDarkMode;
@@ -792,6 +796,8 @@ const HomeScreen = () => {
           </>
         )}
       </ScrollView>
+      
+
     </SafeAreaView>
   );
 };

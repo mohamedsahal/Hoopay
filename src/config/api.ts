@@ -1,6 +1,7 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+import { sessionExpiryHandler } from '../services/sessionExpiryHandler';
 
 // Production Base URL
 export const BASE_URL = 'https://hoopaywallet.com';
@@ -123,39 +124,24 @@ api.interceptors.response.use(
       });
     }
 
-    // Handle 401 Unauthorized errors
+    // Handle 401 Unauthorized errors (session expiration)
     if (error.response?.status === 401) {
-      // Only logout if this isn't an auth endpoint and we're not already retrying
+      // Only handle session expiry if this isn't an auth endpoint and we're not already retrying
       const isAuthEndpoint = originalRequest.url?.includes('auth/login') || 
                              originalRequest.url?.includes('auth/register');
       
       if (!isAuthEndpoint && !originalRequest._retry) {
-        // For login failures, don't log out automatically
-        // For other 401 errors, check if we're logged in and need to refresh
         const token = await SecureStore.getItemAsync('auth_token');
         
         if (token) {
-          // We have a token but got 401 - it might be expired
-          // You could implement token refresh logic here if your API supports it
+          // We have a token but got 401 - session has expired
+          console.log('Session expired - handling with session expiry handler');
           
-          // For now, we'll only log the user out on profile page or after a certain time threshold
-          // Don't automatically log out on profile requests - this is causing refresh logout issues
-          // Instead, only log out for specific endpoints that indicate critical auth failures
-          const isCriticalEndpoint = originalRequest.url?.includes('/logout') || 
-                                    originalRequest.url?.includes('/auth/status');
+          // Use the session expiry handler to clear data and redirect to login
+          await sessionExpiryHandler.handleSessionExpiry(false); // No alert, just redirect
           
-          // If this is a profile request, just log the error but don't log out
-          if (originalRequest.url?.includes('/profile')) {
-            console.log('Profile request failed with 401, but not logging out');
-            // Don't logout on profile errors - these could be transient
-          } else if (isCriticalEndpoint) {
-            console.log('Session expired on critical endpoint, logging out...');
-            // Clear auth data
-            await SecureStore.deleteItemAsync('auth_token');
-            await SecureStore.deleteItemAsync('userData');
-            // You'd typically need to navigate to login here or update your auth state
-            // This would be handled by your app's state management
-          }
+          // Mark this request as handled to prevent retry loops
+          originalRequest._retry = true;
         }
       }
     }

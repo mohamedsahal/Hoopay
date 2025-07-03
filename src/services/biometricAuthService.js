@@ -296,12 +296,16 @@ class BiometricAuthService {
             if (!credentials.localUserData) {
               console.log('No local user data found in credentials - need fresh login');
               
-              return {
-                success: false,
-                error: 'Please log in with your password to restore biometric authentication.',
-                fallbackToPassword: true,
-                sessionExpired: true,
-              };
+                          // Instead of returning a session expired error, handle it globally
+            const { sessionExpiryHandler } = require('./sessionExpiryHandler');
+            await sessionExpiryHandler.handleSessionExpiry(true, 'Your session has expired. Please log in again to continue using biometric authentication.');
+            
+            return {
+              success: false,
+              error: 'Session expired - redirecting to login',
+              fallbackToPassword: true,
+              sessionExpired: true,
+            };
             }
             
             // Update last used timestamp

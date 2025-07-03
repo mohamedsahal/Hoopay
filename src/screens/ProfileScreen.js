@@ -132,7 +132,7 @@ const ProfileScreenSkeleton = ({ colors }) => (
 
 const ProfileScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const { logout: authLogout } = useAuth(); // Extract logout function from context
+  const { logout: authLogout, handleSessionExpiry } = useAuth(); // Extract logout and session expiry handler from context
   const tabBarHeight = useTabBarSafeHeight();
   
   // Biometric states
@@ -341,10 +341,15 @@ const ProfileScreen = ({ navigation }) => {
       console.error('Biometric setup error:', setupError);
       setBiometricEnabled(false);
       
-      let errorMessage = 'Failed to enable biometric authentication.';
+      // Check if this is a session expiry error
       if (setupError.message.includes('session expired') || setupError.message.includes('Authentication')) {
-        errorMessage = 'Your session has expired. Please log in again to enable biometric authentication.';
-      } else if (setupError.message.includes('cancelled')) {
+        // Handle session expiry by redirecting to login
+        handleSessionExpiry(true, 'Your session has expired. Please log in again to enable biometric authentication.');
+        return;
+      }
+      
+      let errorMessage = 'Failed to enable biometric authentication.';
+      if (setupError.message.includes('cancelled')) {
         errorMessage = 'Biometric setup was cancelled.';
       } else if (setupError.message.includes('not available')) {
         errorMessage = 'Biometric authentication is not available on this device.';

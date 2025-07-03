@@ -20,6 +20,7 @@ import * as Animatable from 'react-native-animatable';
 import { authService } from '../../services/auth';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { sessionExpiryHandler } from '../../services/sessionExpiryHandler';
 import Colors from '../../constants/Colors';
 import { RootStackScreenProps } from '../../types/navigation';
 
@@ -54,11 +55,8 @@ const TwoFactorChallengeScreen: React.FC<TwoFactorChallengeScreenProps> = ({ nav
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          Alert.alert(
-            'Session Expired',
-            'Your login session has expired. Please log in again.',
-            [{ text: 'OK', onPress: () => navigation.goBack() }]
-          );
+          // Use session expiry handler instead of showing alert
+          sessionExpiryHandler.handleSessionExpiry(true, 'Your 2FA session has expired. Please log in again.');
           return 0;
         }
         return prev - 1;
