@@ -9,7 +9,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:121937300304:android:d89dedb7a263c386103a55",
         "android_client_info": {
-          "package_name": "com.exaliye.HoopayNew"
+          "package_name": "com.hoopay.wallet"
         }
       },
       "oauth_client": [
@@ -17,7 +17,7 @@
           "client_id": "121937300304-eftse91tjhovgs3hldvo9bpn1u3iqa8h.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.exaliye.HoopayNew",
+            "package_name": "com.hoopay.wallet",
             "certificate_hash": "58e1c5717c8bc2f65dae7b64e84324d656b19abf"
           }
         },
