@@ -22,7 +22,6 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useTabBarSafeHeight } from '../constants/Layout';
 import { authService } from '../services/auth';
 import biometricAuthService from '../services/biometricAuthService';
-import axios from 'axios';
 import { BASE_URL, ENDPOINTS, getHeaders } from '../config/apiConfig';
 import { useAuth } from '../contexts/AuthContext';
 import { getTokenInfo } from '../utils/jwtUtils';
