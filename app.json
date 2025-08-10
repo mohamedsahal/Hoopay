@@ -40,7 +40,7 @@
         "foregroundImage": "./assets/ic_launcher.png",
         "backgroundColor": "#4CAF50"
       },
-      "package": "com.exaliye.HoopayNew",
+      "package": "com.hoopay.wallet",
       "googleServicesFile": "./google-services.json",
       "versionCode": 23,
       "compileSdkVersion": 34,
