@@ -48,6 +48,47 @@
           ]
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:121937300304:android:com.exaliye.HoopayNew",
+        "android_client_info": {
+          "package_name": "com.exaliye.HoopayNew"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "121937300304-eftse91tjhovgs3hldvo9bpn1u3iqa8h.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.exaliye.HoopayNew",
+            "certificate_hash": "58e1c5717c8bc2f65dae7b64e84324d656b19abf"
+          }
+        },
+        {
+          "client_id": "121937300304-5fdd9h0vhnm69f5cffp0ae1sq42dtpn3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAxHx7CleoEhe3lDoOervZncsUik0qdMN0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "121937300304-5fdd9h0vhnm69f5cffp0ae1sq42dtpn3.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "121937300304-9qq9hr6n38kc8b7715780oljtpjjqgr0.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
     }
   ],
   "configuration_version": "1"
