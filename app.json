@@ -1,15 +1,19 @@
 {
   "expo": {
     "name": "Hoopay Wallet",
-    "slug": "HoopayNew",
-    "owner": "exaliye",
+    "slug": "hoopay",
+    "owner": "hoopaywallet",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/ic_launcher.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": false,
     "scheme": "hoopay",
-    "platforms": ["ios", "android", "web"],
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
     "sdkVersion": "51.0.0",
     "splash": {
       "image": "./assets/splashicon.png",
@@ -36,20 +40,21 @@
         "foregroundImage": "./assets/ic_launcher.png",
         "backgroundColor": "#4CAF50"
       },
-      "package": "com.exaliye.HoopayNew",
+      "package": "com.hoopay.wallet",
       "googleServicesFile": "./google-services.json",
       "versionCode": 22,
       "compileSdkVersion": 35,
       "targetSdkVersion": 35,
-      "minSdkVersion": 35,
+      "minSdkVersion": 24,
       "permissions": [
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
-        "INTERNET",
-        "ACCESS_NETWORK_STATE",
-        "USE_BIOMETRIC",
-        "USE_FINGERPRINT"
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -68,7 +73,7 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "50126ac8-0cf4-44a3-91d4-d5659bf6f62c"
+        "projectId": "463b0040-9a26-4fb0-b5f2-ca7a58756170"
       }
     }
   }
