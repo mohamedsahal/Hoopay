@@ -48,8 +48,6 @@
       "minSdkVersion": 21,
       "permissions": [
         "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
         "INTERNET",
         "ACCESS_NETWORK_STATE",
         "USE_BIOMETRIC",
@@ -67,8 +65,12 @@
           "iCloudContainerEnvironment": "Production"
         }
       ],
-      "expo-image-picker",
-      "expo-media-library"
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you share them with your friends."
+        }
+      ]
     ],
     "extra": {
       "eas": {
