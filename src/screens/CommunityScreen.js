@@ -18,7 +18,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as ImagePicker from 'expo-image-picker';
+import { pickImage } from '../utils/imagePicker';
 import * as Haptics from 'expo-haptics';
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
@@ -1269,7 +1269,7 @@ const CommunityScreen = ({ navigation }) => {
     }
   };
 
-  const pickImage = async () => {
+  const handlePickImage = async () => {
     // Show size recommendation alert first
     Alert.alert(
       'Image Recommendations',
@@ -1280,8 +1280,7 @@ const CommunityScreen = ({ navigation }) => {
           text: 'Choose Image', 
           onPress: async () => {
             try {
-              const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+              const result = await pickImage({
                 allowsEditing: false, // Allow original aspect ratio
                 quality: 0.8,
                 allowsMultipleSelection: false,
@@ -1290,7 +1289,9 @@ const CommunityScreen = ({ navigation }) => {
                 selectionLimit: 1,
               });
 
-              if (!result.canceled && result.assets[0]) {
+              console.log('Image picker result:', result);
+
+              if (result && !result.canceled && result.assets && Array.isArray(result.assets) && result.assets.length > 0) {
                 const asset = result.assets[0];
                 
                 // Check file size (5MB limit)
@@ -2030,7 +2031,7 @@ const CommunityScreen = ({ navigation }) => {
         setSelectedImage={setSelectedImage}
         isCreatingPost={isCreatingPost}
         onSubmit={createPost}
-        onPickImage={pickImage}
+        onPickImage={handlePickImage}
       />
 
       {/* Search Modals */}

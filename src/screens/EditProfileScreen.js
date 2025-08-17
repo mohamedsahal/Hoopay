@@ -12,7 +12,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Svg, Path } from 'react-native-svg';
-import * as ImagePicker from 'expo-image-picker';
+import { pickImage } from '../utils/imagePicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { LoadingIndicator } from '../components/Loading';
@@ -155,42 +155,39 @@ const EditProfileScreen = ({ navigation, route }) => {
     }
   };
   
-  const pickImage = async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    
-    if (permissionResult.granted === false) {
-      Alert.alert('Permission Required', 'You need to grant access to your photos to change your profile picture.');
-      return;
-    }
-    
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7, // Reduce quality to limit file size
-    });
-    
-    if (!result.canceled) {
-      const asset = result.assets[0];
-      
-      // Check file size (limit to 5MB for testing)
-      if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
-        Alert.alert(
-          'File Too Large',
-          'Please choose an image smaller than 5MB. You can try reducing the image quality or dimensions.',
-          [{ text: 'OK' }]
-        );
-        return;
-      }
-      
-      console.log('Selected image info:', {
-        width: asset.width,
-        height: asset.height,
-        fileSize: asset.fileSize,
-        type: asset.type
+  const handlePickImage = async () => {
+    try {
+      const result = await pickImage({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7, // Reduce quality to limit file size
       });
-      
-      setAvatar(asset);
+    
+      if (!result.canceled) {
+        const asset = result.assets[0];
+        
+        // Check file size (limit to 5MB for testing)
+        if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
+          Alert.alert(
+            'File Too Large',
+            'Please choose an image smaller than 5MB. You can try reducing the image quality or dimensions.',
+            [{ text: 'OK' }]
+          );
+          return;
+        }
+        
+        console.log('Selected image info:', {
+          width: asset.width,
+          height: asset.height,
+          fileSize: asset.fileSize,
+          type: asset.type
+        });
+        
+        setAvatar(asset);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image. Please try again.');
     }
   };
 
@@ -212,7 +209,7 @@ const EditProfileScreen = ({ navigation, route }) => {
         style: option === 'Cancel' ? 'cancel' : option === 'Delete Photo' ? 'destructive' : 'default',
         onPress: () => {
           if (option === 'Choose from Gallery') {
-            pickImage();
+            handlePickImage();
           } else if (option === 'Delete Photo') {
             deletePhoto();
           }

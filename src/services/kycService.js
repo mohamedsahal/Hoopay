@@ -1,5 +1,5 @@
 import api from './api';
-import { ENDPOINTS } from '../config/apiConfig';
+import { ENDPOINTS, BASE_URL } from '../config/apiConfig';
 
 class KycService {
   constructor() {
@@ -7,11 +7,15 @@ class KycService {
     console.log('KycService constructor - ENDPOINTS:', ENDPOINTS);
     console.log('KycService constructor - ENDPOINTS.KYC:', ENDPOINTS?.KYC);
     
-    // Fallback endpoints in case of import issues
+    // Use BASE_URL from config (matches working community uploads)
+    this.baseURL = BASE_URL;
+    
+    // Fallback endpoints (restored to original working endpoints)
     this.fallbackEndpoints = {
       STATUS: '/mobile/kyc/status',
       SUBMIT_PERSONAL_INFO: '/mobile/kyc/personal-info',
       UPLOAD_DOCUMENT: '/mobile/kyc/upload-document',
+      UPLOAD_BASE64: '/mobile/kyc/upload-base64',
       SUBMIT_FOR_REVIEW: '/mobile/kyc/submit-for-review',
       VERIFICATION_LIMITS: '/mobile/kyc/verification-limits',
       CHECK_TRANSACTION_LIMIT: '/mobile/kyc/check-transaction-limit'
@@ -174,7 +178,12 @@ class KycService {
         mime_type: mimeType
       };
 
-      const response = await api.post('/mobile/kyc/upload-base64', requestData, {
+      const endpoint = this.getEndpoint('UPLOAD_BASE64');
+      if (!endpoint) {
+        throw new Error('KYC UPLOAD_BASE64 endpoint not found');
+      }
+
+      const response = await api.post(endpoint, requestData, {
         timeout: 60000,
         headers: {
           'Content-Type': 'application/json'
@@ -207,7 +216,7 @@ class KycService {
   }
 
   /**
-   * Upload KYC document (original FormData method)
+   * Upload KYC document (restored to original working axios method)
    */
   async uploadDocument(formData) {
     try {
@@ -253,7 +262,7 @@ class KycService {
         console.log('⚠️ Server connectivity issue:', connectError.message);
       }
       
-      // Use the same exact pattern as the working community post uploads
+      // Use the original working axios pattern (exactly like the old code)
       const response = await api.post(endpoint, formData, {
         timeout: 60000, // Match community upload timeout (60s)
         maxContentLength: Infinity,
@@ -302,6 +311,21 @@ class KycService {
         error: error.response?.data?.message || 'Failed to upload document',
         errors: error.response?.data?.errors || {}
       };
+    }
+  }
+
+  /**
+   * Get authentication token (matches working community pattern)
+   */
+  async getAuthToken() {
+    try {
+      // Use SecureStore like the working community uploads
+      const SecureStore = require('expo-secure-store');
+      const token = await SecureStore.getItemAsync('auth_token');
+      return token;
+    } catch (error) {
+      console.error('Error getting auth token:', error);
+      return null;
     }
   }
 

@@ -68,7 +68,9 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "The app accesses your photos to let you share them with your friends."
+          "photosPermission": false,
+          "cameraPermission": "The app accesses your camera to let you take photos for KYC verification and profile updates.",
+          "microphonePermission": false
         }
       ]
     ],

@@ -11,6 +11,8 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { runAllTests, apiTests } from '../utils/apiTest';
+import { pickImage, takePhoto } from '../utils/imagePicker';
+import { testImagePickerDebug, testCameraDebug } from '../scripts/testImagePicker';
 
 const ApiTestScreen = () => {
   const [isRunning, setIsRunning] = useState(false);
@@ -105,6 +107,98 @@ const ApiTestScreen = () => {
     }
   };
 
+  const testImagePicker = async () => {
+    try {
+      console.log('🧪 Testing image picker...');
+      const result = await pickImage({
+        allowsEditing: false,
+        quality: 0.8,
+      });
+      console.log('🧪 Image picker test result:', result);
+      
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        console.log('🧪 Image picker test SUCCESS:', result.assets[0]);
+        Alert.alert('Success', 'Image picker is working correctly!');
+      } else {
+        console.log('🧪 Image picker test FAILED - canceled or no assets');
+        Alert.alert('Test Failed', 'Image picker returned canceled or no assets');
+      }
+    } catch (error) {
+      console.error('🧪 Image picker test error:', error);
+      Alert.alert('Test Error', `Image picker test failed: ${error.message}`);
+    }
+  };
+
+  const testCamera = async () => {
+    try {
+      console.log('🧪 Testing camera...');
+      const result = await takePhoto({
+        allowsEditing: false,
+        quality: 0.8,
+      });
+      console.log('🧪 Camera test result:', result);
+      
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        console.log('🧪 Camera test SUCCESS:', result.assets[0]);
+        Alert.alert('Success', 'Camera is working correctly!');
+      } else {
+        console.log('🧪 Camera test FAILED - canceled or no assets');
+        Alert.alert('Test Failed', 'Camera returned canceled or no assets');
+      }
+    } catch (error) {
+      console.error('🧪 Camera test error:', error);
+      Alert.alert('Test Error', `Camera test failed: ${error.message}`);
+    }
+  };
+
+  const testImagePickerDebug = async () => {
+    try {
+      console.log('🔍 Starting debug test for image picker...');
+      const result = await testImagePickerDebug();
+      console.log('🔍 Debug test result:', result);
+      Alert.alert('Debug Test Complete', 'Check console for detailed logs');
+    } catch (error) {
+      console.error('🔍 Debug test error:', error);
+      Alert.alert('Debug Test Error', `Debug test failed: ${error.message}`);
+    }
+  };
+
+  const testImagePickerSimple = async () => {
+    try {
+      console.log('🧪 Testing simple image picker...');
+      const result = await pickImage({
+        allowsEditing: false,
+        quality: 0.8,
+      });
+      
+      console.log('🧪 Simple image picker result:', result);
+      
+      if (result && !result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        console.log('🧪 Simple image picker SUCCESS:', asset);
+        Alert.alert('Success', `Image picker working! Selected: ${asset.fileName || 'image'}`);
+      } else {
+        console.log('🧪 Simple image picker FAILED - canceled or no assets');
+        Alert.alert('Test Failed', 'Image picker returned canceled or no assets');
+      }
+    } catch (error) {
+      console.error('🧪 Simple image picker error:', error);
+      Alert.alert('Test Error', `Simple image picker failed: ${error.message}`);
+    }
+  };
+
+  const testCameraDebug = async () => {
+    try {
+      console.log('🔍 Starting debug test for camera...');
+      const result = await testCameraDebug();
+      console.log('🔍 Debug test result:', result);
+      Alert.alert('Debug Test Complete', 'Check console for detailed logs');
+    } catch (error) {
+      console.error('🔍 Debug test error:', error);
+      Alert.alert('Debug Test Error', `Debug test failed: ${error.message}`);
+    }
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'passed':
@@ -177,6 +271,26 @@ const ApiTestScreen = () => {
           ) : (
             <Text style={styles.runButtonText}>Run All Tests</Text>
           )}
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.testButton} onPress={testImagePicker}>
+          <Text style={styles.testButtonText}>Test Image Picker</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.testButton} onPress={testCamera}>
+          <Text style={styles.testButtonText}>Test Camera</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.testButton} onPress={testImagePickerDebug}>
+          <Text style={styles.testButtonText}>Debug Image Picker</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.testButton} onPress={testImagePickerSimple}>
+          <Text style={styles.testButtonText}>Simple Image Picker Test</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.testButton} onPress={testCameraDebug}>
+          <Text style={styles.testButtonText}>Debug Camera</Text>
         </TouchableOpacity>
 
         {summary && (
@@ -389,6 +503,18 @@ const styles = StyleSheet.create({
   emptySubtext: {
     fontSize: 14,
     color: '#999',
+  },
+  testButton: {
+    backgroundColor: '#4CAF50',
+    margin: 15,
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  testButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

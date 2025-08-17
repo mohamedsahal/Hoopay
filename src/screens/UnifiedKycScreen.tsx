@@ -24,7 +24,7 @@ import kycService from '../services/kycService';
 import { documentTypes, countries } from '../constants/kycData';
 import { DocumentTypePickerModal, CountryPickerModal, DatePickerModal } from '../components/KYC';
 import AdminFeedback from '../components/KYC/AdminFeedback';
-import * as ImagePicker from 'expo-image-picker';
+import { pickImage, takePhoto } from '../utils/imagePicker';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -78,6 +78,13 @@ const UnifiedKycScreen: React.FC<UnifiedKycScreenProps> = ({ navigation }) => {
   const [documentFront, setDocumentFront] = useState<DocumentUpload | null>(null);
   const [documentBack, setDocumentBack] = useState<DocumentUpload | null>(null);
   const [selfieImage, setSelfieImage] = useState<DocumentUpload | null>(null);
+  
+  // Track document changes to avoid re-uploading unchanged documents
+  const [documentChanges, setDocumentChanges] = useState({
+    front: false,
+    back: false,
+    selfie: false
+  });
 
   // Modal states
   const [showDocumentTypePicker, setShowDocumentTypePicker] = useState(false);
@@ -104,8 +111,10 @@ const UnifiedKycScreen: React.FC<UnifiedKycScreenProps> = ({ navigation }) => {
     try {
       setLoading(true);
       const response = await kycService.getKycStatus();
+      console.log('📋 KYC Status Response:', response);
       if (response.success) {
         setKycStatus(response.data);
+        console.log('📋 KYC Data:', response.data);
         if (response.data?.personal_info) {
           setPersonalInfo(prev => ({
             ...prev,
@@ -239,82 +248,101 @@ const UnifiedKycScreen: React.FC<UnifiedKycScreenProps> = ({ navigation }) => {
     }
   };
 
-  const requestPermissions = async (type: 'camera' | 'library') => {
-    if (type === 'camera') {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      return status === 'granted';
-    } else {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      return status === 'granted';
+    const handlePickImage = async (documentType: 'front' | 'back' | 'selfie') => {
+    try {
+      console.log(`📱 Starting image pick for ${documentType}`);
+      
+      const result = await pickImage({
+        allowsEditing: false,
+        quality: 0.8,
+      });
+
+      console.log(`📱 Image pick result for ${documentType}:`, result);
+
+      if (!result.canceled && result.assets && Array.isArray(result.assets) && result.assets.length > 0) {
+        const assets = result.assets as any[];
+        const asset = assets[0];
+        console.log(`📱 Processing asset for ${documentType}:`, asset);
+        
+        const uploadData: DocumentUpload = {
+          uri: asset.uri,
+          type: asset.type || 'image/jpeg',
+          name: asset.fileName || `${documentType}_${Date.now()}.jpg`,
+        };
+
+        console.log(`📱 Upload data for ${documentType}:`, uploadData);
+
+        switch (documentType) {
+          case 'front':
+            setDocumentFront(uploadData);
+            setDocumentChanges(prev => ({ ...prev, front: true }));
+            break;
+          case 'back':
+            setDocumentBack(uploadData);
+            setDocumentChanges(prev => ({ ...prev, back: true }));
+            break;
+          case 'selfie':
+            setSelfieImage(uploadData);
+            setDocumentChanges(prev => ({ ...prev, selfie: true }));
+            break;
+        }
+        
+        console.log(`📱 Successfully set ${documentType} document`);
+      } else {
+        console.log(`📱 Image pick was canceled or failed for ${documentType}`);
+      }
+    } catch (error) {
+      console.error(`Error picking image for ${documentType}:`, error);
+      Alert.alert('Error', 'Failed to pick image. Please try again.');
     }
   };
 
-  const pickImage = async (documentType: 'front' | 'back' | 'selfie') => {
-    const hasPermission = await requestPermissions('library');
-    if (!hasPermission) {
-      Alert.alert('Permission Required', 'Please grant photo library access to upload documents.');
-      return;
-    }
+  const handleTakePhoto = async (documentType: 'front' | 'back' | 'selfie') => {
+    try {
+      console.log(`📱 Starting camera for ${documentType}`);
+      
+      const result = await takePhoto({
+        allowsEditing: false,
+        quality: 0.8,
+      });
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: false,
-      quality: 0.8,
-    });
+      console.log(`📱 Camera result for ${documentType}:`, result);
 
-    if (!result.canceled && result.assets[0]) {
-      const asset = result.assets[0];
-      const uploadData: DocumentUpload = {
-        uri: asset.uri,
-        type: asset.type || 'image/jpeg',
-        name: `${documentType}_${Date.now()}.jpg`,
-      };
+      if (!result.canceled && result.assets && Array.isArray(result.assets) && result.assets.length > 0) {
+        const assets = result.assets as any[];
+        const asset = assets[0];
+        console.log(`📱 Processing camera asset for ${documentType}:`, asset);
+        
+        const uploadData: DocumentUpload = {
+          uri: asset.uri,
+          type: asset.type || 'image/jpeg',
+          name: asset.fileName || `${documentType}_${Date.now()}.jpg`,
+        };
 
-      switch (documentType) {
-        case 'front':
-          setDocumentFront(uploadData);
-          break;
-        case 'back':
-          setDocumentBack(uploadData);
-          break;
-        case 'selfie':
-          setSelfieImage(uploadData);
-          break;
+        console.log(`📱 Camera upload data for ${documentType}:`, uploadData);
+
+        switch (documentType) {
+          case 'front':
+            setDocumentFront(uploadData);
+            setDocumentChanges(prev => ({ ...prev, front: true }));
+            break;
+          case 'back':
+            setDocumentBack(uploadData);
+            setDocumentChanges(prev => ({ ...prev, back: true }));
+            break;
+          case 'selfie':
+            setSelfieImage(uploadData);
+            setDocumentChanges(prev => ({ ...prev, selfie: true }));
+            break;
+        }
+        
+        console.log(`📱 Successfully set ${documentType} document from camera`);
+      } else {
+        console.log(`📱 Camera was canceled or failed for ${documentType}`);
       }
-    }
-  };
-
-  const takePhoto = async (documentType: 'front' | 'back' | 'selfie') => {
-    const hasPermission = await requestPermissions('camera');
-    if (!hasPermission) {
-      Alert.alert('Permission Required', 'Please grant camera access to take photos.');
-      return;
-    }
-
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: false,
-      quality: 0.8,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      const asset = result.assets[0];
-      const uploadData: DocumentUpload = {
-        uri: asset.uri,
-        type: asset.type || 'image/jpeg',
-        name: `${documentType}_${Date.now()}.jpg`,
-      };
-
-      switch (documentType) {
-        case 'front':
-          setDocumentFront(uploadData);
-          break;
-        case 'back':
-          setDocumentBack(uploadData);
-          break;
-        case 'selfie':
-          setSelfieImage(uploadData);
-          break;
-      }
+    } catch (error) {
+      console.error(`Error taking photo for ${documentType}:`, error);
+      Alert.alert('Error', 'Failed to take photo. Please try again.');
     }
   };
 
@@ -325,11 +353,29 @@ const UnifiedKycScreen: React.FC<UnifiedKycScreenProps> = ({ navigation }) => {
       title,
       'Choose how to add your document',
       [
-        { text: 'Take Photo', onPress: () => takePhoto(documentType) },
-        { text: 'Choose from Gallery', onPress: () => pickImage(documentType) },
+        { text: 'Take Photo', onPress: () => handleTakePhoto(documentType) },
+        { text: 'Choose from Gallery', onPress: () => handlePickImage(documentType) },
+        { text: 'Clear Document', onPress: () => clearDocument(documentType) },
         { text: 'Cancel', style: 'cancel' },
       ]
     );
+  };
+
+  const clearDocument = (documentType: 'front' | 'back' | 'selfie') => {
+    switch (documentType) {
+      case 'front':
+        setDocumentFront(null);
+        setDocumentChanges(prev => ({ ...prev, front: true }));
+        break;
+      case 'back':
+        setDocumentBack(null);
+        setDocumentChanges(prev => ({ ...prev, back: true }));
+        break;
+      case 'selfie':
+        setSelfieImage(null);
+        setDocumentChanges(prev => ({ ...prev, selfie: true }));
+        break;
+    }
   };
 
   const validateForm = (): boolean => {
@@ -387,33 +433,111 @@ const UnifiedKycScreen: React.FC<UnifiedKycScreenProps> = ({ navigation }) => {
     try {
       setSubmitting(true);
 
-      // Submit personal info
+      // Submit personal info first
+      console.log('📝 Submitting personal information...');
       const personalInfoResponse = await kycService.submitPersonalInfo(personalInfo);
       if (!personalInfoResponse.success) {
         throw new Error(personalInfoResponse.error || 'Failed to submit personal information');
       }
+      console.log('✅ Personal information submitted successfully');
 
-      // Upload documents
-      if (documentFront) {
-        const frontResponse = await kycService.uploadDocumentBase64(documentFront, 'front_document');
+      // Upload front document if changed
+      if (documentFront && documentChanges.front) {
+        console.log('📤 Uploading changed front document...');
+        
+        // Try base64 upload first
+        let frontResponse = await kycService.uploadDocumentBase64(documentFront, 'front_document');
+        
+        // If base64 fails with network error, try FormData upload as fallback
+        if (!frontResponse.success && (frontResponse.error?.includes('Network Error') || frontResponse.error?.includes('ERR_NETWORK') || frontResponse.error?.includes('Failed to upload document'))) {
+          console.log('🔄 Base64 upload failed, trying FormData fallback...');
+          
+          // Create FormData for fallback upload
+          const formData = new FormData();
+          formData.append('document_type', 'front_document');
+          formData.append('document', {
+            uri: documentFront.uri,
+            type: documentFront.type || 'image/jpeg',
+            name: documentFront.name || `front_document_${Date.now()}.jpg`,
+          } as any);
+          
+          frontResponse = await kycService.uploadDocument(formData);
+        }
+        
         if (!frontResponse.success) {
-          throw new Error('Failed to upload front document');
+          console.error('❌ Front document upload failed:', frontResponse.error);
+          throw new Error(`Failed to upload front document: ${frontResponse.error || 'Network error'}`);
         }
+        console.log('✅ Front document uploaded successfully');
+      } else if (documentFront && !documentChanges.front) {
+        console.log('📋 Front document unchanged, skipping upload');
       }
 
-      if (requiresBackDocument() && documentBack) {
-        const backResponse = await kycService.uploadDocumentBase64(documentBack, 'back_document');
+      // Upload back document if required and changed
+      if (requiresBackDocument() && documentBack && documentChanges.back) {
+        console.log('📤 Uploading changed back document...');
+        
+        // Try base64 upload first
+        let backResponse = await kycService.uploadDocumentBase64(documentBack, 'back_document');
+        
+        // If base64 fails with network error, try FormData upload as fallback
+        if (!backResponse.success && (backResponse.error?.includes('Network Error') || backResponse.error?.includes('ERR_NETWORK') || backResponse.error?.includes('Failed to upload document'))) {
+          console.log('🔄 Base64 upload failed, trying FormData fallback...');
+          
+          // Create FormData for fallback upload
+          const formData = new FormData();
+          formData.append('document_type', 'back_document');
+          formData.append('document', {
+            uri: documentBack.uri,
+            type: documentBack.type || 'image/jpeg',
+            name: documentBack.name || `back_document_${Date.now()}.jpg`,
+          } as any);
+          
+          backResponse = await kycService.uploadDocument(formData);
+        }
+        
         if (!backResponse.success) {
-          throw new Error('Failed to upload back document');
+          console.error('❌ Back document upload failed:', backResponse.error);
+          throw new Error(`Failed to upload back document: ${backResponse.error || 'Network error'}`);
         }
+        console.log('✅ Back document uploaded successfully');
+      } else if (requiresBackDocument() && documentBack && !documentChanges.back) {
+        console.log('📋 Back document unchanged, skipping upload');
       }
 
-      if (selfieImage) {
-        const selfieResponse = await kycService.uploadDocumentBase64(selfieImage, 'selfie');
-        if (!selfieResponse.success) {
-          throw new Error('Failed to upload selfie');
+      // Upload selfie if changed
+      if (selfieImage && documentChanges.selfie) {
+        console.log('📤 Uploading changed selfie...');
+        
+        // Try base64 upload first
+        let selfieResponse = await kycService.uploadDocumentBase64(selfieImage, 'selfie');
+        
+        // If base64 fails with network error, try FormData upload as fallback
+        if (!selfieResponse.success && (selfieResponse.error?.includes('Network Error') || selfieResponse.error?.includes('ERR_NETWORK') || selfieResponse.error?.includes('Failed to upload document'))) {
+          console.log('🔄 Base64 upload failed, trying FormData fallback...');
+          
+          // Create FormData for fallback upload
+          const formData = new FormData();
+          formData.append('document_type', 'selfie');
+          formData.append('document', {
+            uri: selfieImage.uri,
+            type: selfieImage.type || 'image/jpeg',
+            name: selfieImage.name || `selfie_${Date.now()}.jpg`,
+          } as any);
+          
+          selfieResponse = await kycService.uploadDocument(formData);
         }
+        
+        if (!selfieResponse.success) {
+          console.error('❌ Selfie upload failed:', selfieResponse.error);
+          throw new Error(`Failed to upload selfie: ${selfieResponse.error || 'Network error'}`);
+        }
+        console.log('✅ Selfie uploaded successfully');
+      } else if (selfieImage && !documentChanges.selfie) {
+        console.log('📋 Selfie unchanged, skipping upload');
       }
+
+      console.log('✅ All document uploads completed successfully');
 
       // Update status to pending to show the under review message
       setKycStatus((prev: any) => ({ 
@@ -422,6 +546,14 @@ const UnifiedKycScreen: React.FC<UnifiedKycScreenProps> = ({ navigation }) => {
         submitted_at: new Date().toISOString()
       }));
 
+      // Reset document changes after successful submission
+      setDocumentChanges({
+        front: false,
+        back: false,
+        selfie: false
+      });
+
+      console.log('🎉 KYC submission completed successfully');
       Alert.alert(
         'Success!',
         'Your KYC verification has been submitted successfully. You will be notified once it is reviewed.',
@@ -429,9 +561,31 @@ const UnifiedKycScreen: React.FC<UnifiedKycScreenProps> = ({ navigation }) => {
       );
 
     } catch (error: unknown) {
-      console.error('KYC submission error:', error);
+      console.error('❌ KYC submission error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to submit KYC verification';
-      Alert.alert('Submission Failed', errorMessage);
+      
+      // Show more specific error messages for network issues
+      let userFriendlyMessage = errorMessage;
+      if (errorMessage.includes('Network Error') || errorMessage.includes('ERR_NETWORK')) {
+        userFriendlyMessage = 'Network connection failed. Please check your internet connection and try again.';
+      } else if (errorMessage.includes('Failed to upload')) {
+        userFriendlyMessage = `${errorMessage}\n\nPlease ensure you have a stable internet connection and try again.`;
+      }
+      
+      Alert.alert(
+        'Submission Failed', 
+        userFriendlyMessage,
+        [
+          { text: 'OK' },
+          {
+            text: 'Retry',
+            onPress: () => {
+              // Allow user to retry immediately
+              setTimeout(() => handleSubmit(), 100);
+            }
+          }
+        ]
+      );
     } finally {
       setSubmitting(false);
     }
@@ -672,9 +826,16 @@ const UnifiedKycScreen: React.FC<UnifiedKycScreenProps> = ({ navigation }) => {
     
     return (
       <View style={styles.documentUpload}>
-        <Text style={[styles.documentLabel, { color: colors.text }]}>
-          {title} {isRequired && '*'}
-        </Text>
+        <View style={styles.documentLabelContainer}>
+          <Text style={[styles.documentLabel, { color: colors.text }]}>
+            {title} {isRequired && '*'}
+          </Text>
+          {documentChanges[documentType as keyof typeof documentChanges] && (
+            <View style={[styles.changedIndicator, { backgroundColor: colors.primary }]}>
+              <Text style={[styles.changedText, { color: colors.surface }]}>Modified</Text>
+            </View>
+          )}
+        </View>
         <TouchableOpacity
           style={[
             styles.uploadButton,
@@ -1297,6 +1458,24 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 16,
     letterSpacing: 0.3,
+  },
+
+  documentLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+
+  changedIndicator: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+
+  changedText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
 
   uploadButton: {

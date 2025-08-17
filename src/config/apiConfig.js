@@ -77,6 +77,7 @@ export const ENDPOINTS = {
     STATUS: '/mobile/kyc/status',
     SUBMIT_PERSONAL_INFO: '/mobile/kyc/personal-info',
     UPLOAD_DOCUMENT: '/mobile/kyc/upload-document',
+    UPLOAD_BASE64: '/mobile/kyc/upload-base64',
     SUBMIT_FOR_REVIEW: '/mobile/kyc/submit-for-review',
     VERIFICATION_LIMITS: '/mobile/kyc/verification-limits',
     CHECK_TRANSACTION_LIMIT: '/mobile/kyc/check-transaction-limit'
