@@ -14,8 +14,8 @@ export const testImagePickerDebug = async () => {
     const cameraPermission = await ImagePicker.getCameraPermissionsAsync();
     console.log('🔍 Camera permission status:', cameraPermission.status);
     
-    const mediaLibraryPermission = await ImagePicker.getMediaLibraryPermissionsAsync();
-    console.log('🔍 Media library permission status:', mediaLibraryPermission.status);
+    // Media library permissions removed for Google Play compliance
+    console.log('🔍 Media library permissions: Not requested (Google Play compliance)');
     
     // Step 2: Request permissions if needed
     console.log('🔍 Step 2: Requesting permissions...');
@@ -25,10 +25,7 @@ export const testImagePickerDebug = async () => {
       console.log('🔍 New camera permission status:', newCameraPermission.status);
     }
     
-    if (mediaLibraryPermission.status !== 'granted') {
-      const newMediaLibraryPermission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      console.log('🔍 New media library permission status:', newMediaLibraryPermission.status);
-    }
+    // Media library permission requests removed for Google Play compliance
     
     // Step 3: Test image picker
     console.log('🔍 Step 3: Testing image picker...');

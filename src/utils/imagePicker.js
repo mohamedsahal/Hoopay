@@ -2,23 +2,19 @@ import * as ImagePicker from 'expo-image-picker';
 import { Platform, Alert } from 'react-native';
 
 /**
- * Request permissions for camera and photo library
+ * Request permissions for camera only (no media library permissions for Google Play compliance)
  */
 const requestPermissions = async () => {
   try {
-    console.log('📱 Requesting permissions...');
+    console.log('📱 Requesting camera permissions only...');
     
-    // Request camera permission
+    // Request camera permission only
     const cameraPermission = await ImagePicker.requestCameraPermissionsAsync();
     console.log('📱 Camera permission status:', cameraPermission.status);
     
-    // Request media library permission
-    const mediaLibraryPermission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    console.log('📱 Media library permission status:', mediaLibraryPermission.status);
-    
     return {
       camera: cameraPermission.status === 'granted',
-      mediaLibrary: mediaLibraryPermission.status === 'granted'
+      mediaLibrary: false // No media library permissions for Google Play compliance
     };
   } catch (error) {
     console.error('Error requesting permissions:', error);
@@ -33,8 +29,8 @@ export const pickImage = async (options = {}) => {
   try {
     console.log('📱 Starting image picker with options:', options);
     
-    // For Google Play compliance, we'll skip media library permission check
-    // and rely on the system photo picker which doesn't require READ_MEDIA_IMAGES permission
+    // For Google Play compliance, we use the system photo picker
+    // which doesn't require READ_MEDIA_IMAGES permission
     console.log('📱 Using system photo picker for Google Play compliance');
     
     // Use minimal options with Android photo picker for Google Play compliance

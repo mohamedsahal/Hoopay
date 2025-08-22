@@ -14,14 +14,19 @@ import {
   Image,
   TextInput,
   Dimensions,
-  Platform
+  Platform,
+  Modal,
+  Linking,
+  KeyboardAvoidingView,
+  PanResponder,
+  Share,
+  BackHandler
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { pickImage } from '../utils/imagePicker';
 import * as Haptics from 'expo-haptics';
 import * as FileSystem from 'expo-file-system';
-import * as MediaLibrary from 'expo-media-library';
 import * as Sharing from 'expo-sharing';
 import * as SecureStore from 'expo-secure-store';
 import Colors from '../constants/Colors';
@@ -29,7 +34,7 @@ import { useTabBarSafeHeight } from '../constants/Layout';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { BASE_URL, ENDPOINTS, getHeaders, getMultipartHeaders } from '../config/apiConfig';
-import { MaterialIcons, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialIcons, Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import kycService from '../services/kycService';
 import { LoadingSkeleton, CommunityDotsLoading, DotsLoading } from '../components/Loading';
 import { useCommunityApi } from '../hooks/useCommunityApi';
@@ -1436,20 +1441,6 @@ const CommunityScreen = ({ navigation }) => {
       setDownloadingImage(true);
       triggerHaptic();
 
-      // Request permissions
-      const { status } = await MediaLibrary.requestPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert(
-          'Permission Required',
-          'Please grant media library permissions to download images.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Open Settings', onPress: () => Linking.openSettings() }
-          ]
-        );
-        return;
-      }
-
       // Generate filename
       const timestamp = new Date().getTime();
       const imageExtension = viewerImageUrl.split('.').pop()?.toLowerCase() || 'jpg';
@@ -1460,15 +1451,19 @@ const CommunityScreen = ({ navigation }) => {
       const downloadResult = await FileSystem.downloadAsync(viewerImageUrl, fileUri);
 
       if (downloadResult.status === 200) {
-        // Save to media library
-        const asset = await MediaLibrary.createAssetAsync(downloadResult.uri);
-        await MediaLibrary.createAlbumAsync('Hoopay', asset, false);
-
-        Alert.alert(
-          'Download Complete! 📱',
-          'Image has been saved to your photo gallery in the "Hoopay" album.',
-          [{ text: 'OK' }]
-        );
+        // Share the image instead of saving to media library
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(downloadResult.uri, {
+            mimeType: `image/${imageExtension}`,
+            dialogTitle: 'Save Hoopay Image'
+          });
+        } else {
+          Alert.alert(
+            'Sharing Not Available',
+            'Sharing is not available on this device. The image has been downloaded to your app\'s documents folder.',
+            [{ text: 'OK' }]
+          );
+        }
       } else {
         throw new Error('Download failed');
       }
