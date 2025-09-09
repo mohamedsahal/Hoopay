@@ -36,7 +36,7 @@ const HelpCenterScreen = ({ navigation }) => {
   };
 
   const handleEmailPress = () => {
-    const email = 'info@hoopaywallet.com';
+    const email = 'support@hoopaywallet.com';
     const subject = 'Help Request - Hoopay App';
     const body = 'Hi Hoopay Support Team,\n\nI need assistance with:\n\n[Please describe your issue here]\n\nThank you.';
     const url = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
@@ -55,7 +55,7 @@ const HelpCenterScreen = ({ navigation }) => {
   };
 
   const handleInstagramPress = () => {
-    const username = 'hooexpress';
+    const username = 'hoopaywallet';
     const url = `instagram://user?username=${username}`;
     
     Linking.canOpenURL(url)
@@ -206,7 +206,7 @@ const HelpCenterScreen = ({ navigation }) => {
             </View>
             <View style={getStyles(colors).contactInfo}>
               <Text style={[getStyles(colors).optionTitle, { color: colors.text }]}>Support Email</Text>
-              <Text style={[getStyles(colors).optionSubtitle, { color: colors.textSecondary }]}>info@hoopaywallet.com</Text>
+              <Text style={[getStyles(colors).optionSubtitle, { color: colors.textSecondary }]}>support@hoopaywallet.com</Text>
             </View>
             <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
               <Path

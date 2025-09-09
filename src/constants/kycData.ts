@@ -9,8 +9,8 @@ export const kycTiers = {
     },
     limits: {
       deposit: 10000,
-      withdrawal: 5000,
-      transaction: 2500
+      withdrawal: 1500,
+      transaction: 1500
     },
     description: 'Basic account verification with limited features'
   },

@@ -138,9 +138,9 @@ const DepositStartScreen: React.FC = () => {
   };
 
   const getUnverifiedLimits = () => ({
-    withdrawal_limit: 5000.00,
-    deposit_limit: 5000.00,
-    transaction_limit: 5000.00,
+    withdrawal_limit: 1500.00,
+    deposit_limit: 1500.00,
+    transaction_limit: 1500.00,
   });
 
   const validateInput = (): boolean => {
@@ -168,13 +168,19 @@ const DepositStartScreen: React.FC = () => {
       return false;
     }
 
-    // Check deposit limit - skip for verified users with unlimited deposits
+    // Check deposit limit - use KYC limits for unverified users, backend limits for verified users
     const kycVerified = kycStatus?.verification_status === 'approved';
     const hasUnlimitedDeposits = kycVerified && kycLimits?.deposit_limit === -1;
     
-    if (!hasUnlimitedDeposits && depositInfo?.maximum_deposit && depositAmount > depositInfo.maximum_deposit) {
+    // For unverified users, use our local KYC limits (1500)
+    // For verified users, use backend system limits
+    const effectiveDepositLimit = kycVerified 
+      ? depositInfo?.maximum_deposit 
+      : kycLimits?.deposit_limit;
+    
+    if (!hasUnlimitedDeposits && effectiveDepositLimit && depositAmount > effectiveDepositLimit) {
       if (!kycVerified) {
-        setError(`Unverified users can only deposit up to $${depositInfo.maximum_deposit.toFixed(2)}. Complete KYC verification for unlimited deposits.`);
+        setError(`Unverified users can only deposit up to $${kycLimits.deposit_limit.toFixed(2)}. Complete KYC verification for unlimited deposits.`);
         setTimeout(() => {
           Alert.alert(
             'Verification Required',
@@ -450,7 +456,7 @@ const DepositStartScreen: React.FC = () => {
           {depositInfo && kycLimits && (
             <View>
               <Text style={getStyles(theme).limitText}>
-                Your Limit: ${depositInfo.minimum_deposit} - {kycLimits.deposit_limit === -1 ? 'Unlimited' : `$${depositInfo.maximum_deposit.toLocaleString()}`}
+                Your Limit: ${depositInfo.minimum_deposit} - {kycLimits.deposit_limit === -1 ? 'Unlimited' : `$${kycLimits.deposit_limit.toLocaleString()}`}
               </Text>
               {kycStatus?.verification_status === 'approved' ? (
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>

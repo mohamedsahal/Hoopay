@@ -22,6 +22,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import accountService from '../../services/accountService';
 import LoadingIndicator from '../LoadingIndicator';
+import { parseApiError, getErrorIcon, getErrorColor } from '../../utils/errorUtils';
 import Colors from '../../constants/Colors';
 
 const AddAccountModal = ({ visible, onClose, onSubmit }) => {
@@ -44,8 +45,9 @@ const AddAccountModal = ({ visible, onClose, onSubmit }) => {
   const [error, setError] = useState(null);
 
   const handleError = (error, fallbackMessage) => {
-    const errorMessage = error?.response?.data?.message || error?.message || fallbackMessage;
-    setError(errorMessage);
+    const rawErrorMessage = error?.response?.data?.message || error?.message || fallbackMessage;
+    const userFriendlyMessage = parseApiError(error) || fallbackMessage;
+    setError(userFriendlyMessage);
   };
 
   // Fetch account categories from the API
@@ -261,7 +263,7 @@ const AddAccountModal = ({ visible, onClose, onSubmit }) => {
   };
 
   const renderCategories = () => (
-    <ScrollView style={styles.content}>
+    <View style={styles.content}>
       {isLoadingCategories ? (
         <View style={styles.loadingContainer}>
           <LoadingIndicator size={14} color={colors.primary} />
@@ -284,11 +286,11 @@ const AddAccountModal = ({ visible, onClose, onSubmit }) => {
       ) : (
         <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No account categories available</Text>
       )}
-    </ScrollView>
+    </View>
   );
 
   const renderAccountTypes = () => (
-    <ScrollView style={styles.content}>
+    <View style={styles.content}>
       {isLoadingTypes ? (
         <View style={styles.loadingContainer}>
           <LoadingIndicator size={14} color={colors.primary} />
@@ -323,7 +325,7 @@ const AddAccountModal = ({ visible, onClose, onSubmit }) => {
           </TouchableOpacity>
         </>
       )}
-    </ScrollView>
+    </View>
   );
 
   const renderAccountDetails = () => (
@@ -376,6 +378,9 @@ const AddAccountModal = ({ visible, onClose, onSubmit }) => {
               placeholder={selectedCategory === 'crypto' ? "Enter wallet address" : "Enter account number"}
               placeholderTextColor={colors.placeholder}
               keyboardType={selectedCategory === 'crypto' ? "default" : "numeric"}
+              autoFocus={true}
+              returnKeyType="done"
+              blurOnSubmit={true}
               required
             />
           </View>
@@ -391,6 +396,9 @@ const AddAccountModal = ({ visible, onClose, onSubmit }) => {
             placeholder={selectedCategory === 'crypto' ? "Enter wallet address" : "Enter account number"}
             placeholderTextColor={colors.placeholder}
             keyboardType={selectedCategory === 'crypto' ? "default" : "numeric"}
+            autoFocus={true}
+            returnKeyType="done"
+            blurOnSubmit={true}
             required
           />
         )}
@@ -424,21 +432,21 @@ const AddAccountModal = ({ visible, onClose, onSubmit }) => {
 
   return (
     <Modal
-      animationType="none"
+      animationType="slide"
       transparent={true}
       visible={visible}
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      <TouchableWithoutFeedback onPress={onClose}>
-        <BlurView 
-          intensity={90} 
-          tint={isDarkMode ? "dark" : "light"} 
-          style={styles.blurContainer}
-        >
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            style={styles.keyboardAvoidingView}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.keyboardAvoidingView}
+      >
+        <TouchableWithoutFeedback onPress={onClose}>
+          <BlurView 
+            intensity={90} 
+            tint={isDarkMode ? "dark" : "light"} 
+            style={styles.blurContainer}
           >
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
               <View style={[styles.modalView, { backgroundColor: colors.surface }]}>
@@ -456,24 +464,35 @@ const AddAccountModal = ({ visible, onClose, onSubmit }) => {
                   </TouchableOpacity>
                 </View>
 
-                {error ? (
-                  <View style={styles.centerContent}>
-                    <MaterialIcons name="error" size={40} color={colors.error} />
-                    <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
-                    <TouchableOpacity 
-                      style={[styles.retryButton, { backgroundColor: colors.primary }]} 
-                      onPress={() => {
-                        setError(null);
-                        if (step === 1) fetchCategories();
-                        else if (step === 2) fetchAccountTypes();
-                      }}
-                    >
-                      <Text style={[styles.retryButtonText, { color: 'white' }]}>Retry</Text>
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  renderStepContent()
-                )}
+                <ScrollView 
+                  style={styles.scrollContainer}
+                  contentContainerStyle={styles.scrollContent}
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator={false}
+                >
+                  {error ? (
+                    <View style={styles.centerContent}>
+                      <MaterialIcons 
+                        name={getErrorIcon(error)} 
+                        size={40} 
+                        color={getErrorColor(error, colors)} 
+                      />
+                      <Text style={[styles.errorText, { color: getErrorColor(error, colors) }]}>{error}</Text>
+                      <TouchableOpacity 
+                        style={[styles.retryButton, { backgroundColor: colors.primary }]} 
+                        onPress={() => {
+                          setError(null);
+                          if (step === 1) fetchCategories();
+                          else if (step === 2) fetchAccountTypes();
+                        }}
+                      >
+                        <Text style={[styles.retryButtonText, { color: 'white' }]}>Retry</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    renderStepContent()
+                  )}
+                </ScrollView>
                 
                 {step === 3 && (
                   <View style={[styles.bottomButtonContainer, { borderTopColor: colors.border }]}>
@@ -498,9 +517,9 @@ const AddAccountModal = ({ visible, onClose, onSubmit }) => {
                 )}
               </View>
             </TouchableWithoutFeedback>
-          </KeyboardAvoidingView>
-        </BlurView>
-      </TouchableWithoutFeedback>
+          </BlurView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
@@ -520,7 +539,16 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingBottom: Platform.OS === 'ios' ? 34 : 20, // Extra padding for iPhone X+ bottom area
-    maxHeight: height * 0.85,
+    maxHeight: height * 0.9,
+    minHeight: height * 0.4,
+  },
+  scrollContainer: {
+    flex: 1,
+    maxHeight: height * 0.6,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 20,
   },
   modalHandle: {
     width: 40,
@@ -548,7 +576,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 20,
-    maxHeight: height * 0.6,
+    flex: 1,
   },
   option: {
     flexDirection: 'row',

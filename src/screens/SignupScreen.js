@@ -20,6 +20,7 @@ import { Svg, Path } from 'react-native-svg';
 import { authService } from '../services/auth';
 import biometricAuthService from '../services/biometricAuthService';
 import referralService from '../services/referralService';
+import { parseApiError } from '../utils/errorUtils';
 
 const { width, height } = Dimensions.get('window');
 
@@ -244,22 +245,9 @@ const SignupScreen = ({ navigation }) => {
     } catch (error) {
       console.error('Signup error:', error);
       
-      let errorMessage = 'Failed to create account. Please try again.';
+      const userFriendlyMessage = parseApiError(error) || 'Failed to create account. Please try again.';
       
-      // Handle specific error cases
-      if (error.message) {
-        if (error.message.includes('email')) {
-          errorMessage = 'This email is already registered. Please use a different email or try logging in.';
-        } else if (error.message.includes('password')) {
-          errorMessage = 'Password requirements not met. Please check your password.';
-        } else if (error.message.includes('validation')) {
-          errorMessage = error.message;
-        } else {
-          errorMessage = error.message;
-        }
-      }
-      
-      Alert.alert('Registration Failed', errorMessage);
+      Alert.alert('Registration Failed', userFriendlyMessage);
     } finally {
       setIsLoading(false);
     }

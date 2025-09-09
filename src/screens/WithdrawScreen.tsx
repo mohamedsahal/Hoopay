@@ -259,9 +259,9 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const getUnverifiedLimits = () => ({
-    withdrawal_limit: 5000.00,  // Max 5000 for non-verified users
-    deposit_limit: 5000.00,     // Max 5000 for non-verified users
-    transaction_limit: 5000.00, // Max 5000 for non-verified users
+    withdrawal_limit: 1500.00,  // Max 1500 for non-verified users
+    deposit_limit: 1500.00,     // Max 1500 for non-verified users
+    transaction_limit: 1500.00, // Max 1500 for non-verified users
   });
 
   const calculateFee = async (accountId: number, withdrawAmount: string): Promise<FeeInfo> => {

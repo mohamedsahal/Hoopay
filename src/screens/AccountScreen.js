@@ -18,6 +18,7 @@ import AddAccountModal from '../components/AccountCreation/AddAccountModal';
 import AccountCard from '../components/AccountCreation/AccountCard';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { parseApiError, getErrorIcon, getErrorColor } from '../utils/errorUtils';
 import * as SecureStore from 'expo-secure-store';
 import accountService from '../services/accountService';
 import { StatusBar } from 'expo-status-bar';
@@ -60,10 +61,11 @@ const AccountScreen = ({ navigation }) => {
   const [selectedAccount, setSelectedAccount] = useState(null);
 
   const handleError = (error, fallbackMessage) => {
-    const errorMessage = error?.response?.data?.message || error?.message || fallbackMessage;
-    setError(errorMessage);
-    Alert.alert('Error', errorMessage);
-    console.error('Account error:', errorMessage);
+    const rawErrorMessage = error?.response?.data?.message || error?.message || fallbackMessage;
+    const userFriendlyMessage = parseApiError(error) || fallbackMessage;
+    setError(userFriendlyMessage);
+    Alert.alert('Error', userFriendlyMessage);
+    console.error('Account error:', rawErrorMessage);
   };
 
   const fetchAccounts = async (showLoader = true) => {

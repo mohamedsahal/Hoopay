@@ -113,20 +113,13 @@ const ThermalReceipt: React.FC<ThermalReceiptProps> = ({
       return '0.00';
     }
     
-    // Check if this might be an amount in cents (common in APIs)
-    // If the number is very large (>= 10000) and appears to be in cents, convert it
-    // This is a heuristic: amounts >= $100.00 (10000 cents) are likely in cents format
-    let finalAmount = num;
-    if (num >= 10000 && Number.isInteger(num)) {
-      // Check if dividing by 100 gives a reasonable currency amount
-      const possibleDollarAmount = num / 100;
-      
-      // Use the cents conversion if it seems reasonable
-      finalAmount = possibleDollarAmount;
-    }
+    // Format to 2 decimal places with proper number formatting
+    // Use toLocaleString for proper thousands separators
+    const result = Math.abs(num).toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
     
-    // Format to 2 decimal places
-    const result = Math.abs(finalAmount).toFixed(2);
     return result;
   };
 

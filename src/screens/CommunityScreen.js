@@ -1458,11 +1458,11 @@ const CommunityScreen = ({ navigation }) => {
             dialogTitle: 'Save Hoopay Image'
           });
         } else {
-          Alert.alert(
+        Alert.alert(
             'Sharing Not Available',
             'Sharing is not available on this device. The image has been downloaded to your app\'s documents folder.',
-            [{ text: 'OK' }]
-          );
+          [{ text: 'OK' }]
+        );
         }
       } else {
         throw new Error('Download failed');

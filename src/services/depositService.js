@@ -27,7 +27,7 @@ class DepositService {
           currency: 'USD',
           minimum_deposit: 1,
           minimum_deposit_crypto: 10,
-          maximum_deposit: 500,
+          maximum_deposit: 1500,
           wallet_balance: 0,
           has_accounts: false,
         }
