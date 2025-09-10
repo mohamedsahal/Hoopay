@@ -73,6 +73,18 @@
           "microphonePermission": false,
           "mediaLibraryPermission": false
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "minSdkVersion": 21,
+            "kotlinVersion": "1.9.24",
+            "gradlePluginVersion": "8.3.2"
+          }
+        }
       ]
     ],
     "extra": {
