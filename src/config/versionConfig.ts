@@ -64,11 +64,6 @@ export const isVersionBelowCritical = (version: string): boolean => {
  */
 export const getStoreUrl = (): string => {
   const { Platform } = require('react-native');
-
-  if (Platform.OS === 'ios') {
-    return VERSION_CONFIG.STORE_URLS.ios;
-  }
-
-  // Default fallback to Android
-  return VERSION_CONFIG.STORE_URLS.android;
+  const key: 'ios' | 'android' = Platform.OS === 'ios' ? 'ios' : 'android';
+  return VERSION_CONFIG.STORE_URLS[key];
 };
