@@ -89,10 +89,6 @@ import HomeButton from './src/components/HomeButton';
 import CommunityButton from './src/components/CommunityButton';
 import NotificationToast from './src/components/NotificationToast';
 import ErrorBoundary from './src/components/ErrorBoundary';
-import ForceUpdateModal from './src/components/ForceUpdateModal';
-
-// Import hooks
-import { useVersionCheck } from './src/hooks/useVersionCheck';
 
 // Create strongly typed navigators
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -413,18 +409,6 @@ function AppContent() {
   const navigationRef = useRef(null);
   const [navigationReady, setNavigationReady] = React.useState(false);
   
-  // Version check hook
-  const {
-    shouldShowUpdateModal,
-    isForceUpdate,
-    currentVersion,
-    latestVersion,
-    storeUrl,
-    handleSkipUpdate,
-    handleUpdateComplete,
-    dismissModal,
-  } = useVersionCheck();
-  
   // Use theme context with fallback
   let isDarkMode = null;
   try {
@@ -469,15 +453,6 @@ function AppContent() {
         style={isDarkMode !== null ? (isDarkMode ? "light" : "dark") : "auto"} 
         backgroundColor="transparent"
         translucent={false}
-      />
-      
-      {/* Force Update Modal */}
-      <ForceUpdateModal
-        visible={shouldShowUpdateModal}
-        currentVersion={currentVersion}
-        latestVersion={latestVersion}
-        onUpdate={handleUpdateComplete}
-        isForceUpdate={isForceUpdate}
       />
     </NavigationContainer>
   );
