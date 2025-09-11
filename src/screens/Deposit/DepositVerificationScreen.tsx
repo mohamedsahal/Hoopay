@@ -204,7 +204,7 @@ const DepositVerificationScreen: React.FC = () => {
 
   const openWhatsAppSupport = async () => {
     try {
-      const phoneNumber = '+252904555253';
+      const phoneNumber = '+252905251111';
       const message = encodeURIComponent(
         `Hello! I need help with my deposit transaction.\n\nTransaction Details:\n- Amount: $${amount}\n- Reference: ${reference}\n- Transaction ID: ${transaction?.id || 'N/A'}\n- Status: ${verificationStatus}\n\nPlease assist me with this issue.`
       );
@@ -225,7 +225,7 @@ const DepositVerificationScreen: React.FC = () => {
       // Fallback to showing alert with contact info
       Alert.alert(
         'Contact Support',
-        'Please contact our support team:\n\nEmail: support@hoopaywallet.com\nWhatsApp: +252904555253',
+        'Please contact our support team:\n\nEmail: support@hoopaywallet.com\nWhatsApp: +252905251111',
         [{ text: 'OK' }]
       );
     }
@@ -384,7 +384,7 @@ const DepositVerificationScreen: React.FC = () => {
                 <Text style={getStyles(theme).timeoutTitle}>Verification Time Expired</Text>
                 <Text style={getStyles(theme).timeoutText}>
                   Your transaction has timed out after waiting for 3 minutes. 
-                  Please contact our support team at support@hoopaywallet.com or WhatsApp: +252904555253.
+                  Please contact our support team at support@hoopaywallet.com or WhatsApp: +252905251111.
                 </Text>
               </View>
             )}
