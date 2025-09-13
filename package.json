@@ -13,7 +13,6 @@
     "babel-plugin-transform-remove-console": "^6.9.4",
     "babel-preset-expo": "^54.0.0",
     "expo-build-properties": "^0.14.8",
-    "react-native-worklets": "^0.5.1",
     "typescript": "~5.8.3"
   },
   "dependencies": {
@@ -55,7 +54,9 @@
     "react-native-svg-transformer": "^1.5.1",
     "react-native-vector-icons": "^10.1.0",
     "react-native-version-check-expo": "^3.5.0",
-    "react-native-view-shot": "4.0.3"
+    "react-native-view-shot": "4.0.3",
+    "react-native-worklets": "^0.5.1",
+    "react-refresh": "^0.17.0"
   },
   "scripts": {
     "start": "expo start",
