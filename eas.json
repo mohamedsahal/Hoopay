@@ -9,8 +9,7 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk",
-        "image": "latest",
-        "gradleCommand": ":app:assembleDebug"
+        "image": "latest"
       },
       "ios": {
         "simulator": true,
@@ -21,8 +20,7 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk",
-        "image": "latest",
-        "gradleCommand": ":app:assembleRelease"
+        "image": "latest"
       },
       "ios": {
         "simulator": false,
@@ -36,12 +34,30 @@
       },
       "android": {
         "buildType": "app-bundle",
-        "image": "latest",
-        "gradleCommand": ":app:bundleRelease"
+        "image": "latest"
       },
       "ios": {
         "simulator": false,
         "image": "latest"
+      }
+    },
+    "production-apk": {
+      "node": "20.11.1",
+      "env": {
+        "NODE_ENV": "production"
+      },
+      "android": {
+        "buildType": "apk",
+        "image": "latest"
+      },
+      "ios": {
+        "simulator": false,
+        "image": "latest"
+      }
+    },
+    "production-simple": {
+      "android": {
+        "buildType": "apk"
       }
     }
   },

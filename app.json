@@ -14,7 +14,6 @@
       "android",
       "web"
     ],
-    "sdkVersion": "54.0.0",
     "splash": {
       "image": "./assets/splashicon.png",
       "resizeMode": "contain",
@@ -54,23 +53,18 @@
       "favicon": "./assets/ic_launcher.png"
     },
     "plugins": [
-      "expo-local-authentication",
+      "expo-asset",
       [
-        "expo-document-picker",
+        "expo-build-properties",
         {
-          "iCloudContainerEnvironment": "Production"
+          "android": {
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
+            "buildToolsVersion": "36.0.0",
+            "minSdkVersion": 24
+          }
         }
-      ],
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": false,
-          "cameraPermission": "The app accesses your camera to let you take photos for KYC verification and profile updates.",
-          "microphonePermission": false,
-          "mediaLibraryPermission": false
-        }
-      ],
-      "expo-asset"
+      ]
     ],
     "extra": {
       "eas": {
