@@ -1,23 +1,25 @@
+// Silence logs as early as possible in development
+if (typeof global !== 'undefined') {
+  if (typeof __DEV__ !== 'undefined' && __DEV__) {
+    // No-op console methods in dev session (keep errors only)
+    const error = console.error;
+    console.log = () => {};
+    console.info = () => {};
+    console.debug = () => {};
+    console.warn = () => {};
+    console.error = error;
+  }
+}
+
+// Import polyfill early
+import './src/utils/reactNativePolyfill';
+
 import { registerRootComponent } from 'expo';
+import { LogBox } from 'react-native';
 import App from './App';
 
-// Suppress React Native prototype warnings
-const originalConsoleWarn = console.warn;
-console.warn = (...args) => {
-  // Suppress specific React Native warnings that don't affect functionality
-  const message = args[0];
-  if (
-    typeof message === 'string' &&
-    (
-      message.includes('Skipping defineProperty for non-configurable property: prototype') ||
-      message.includes('defineProperty for non-configurable property')
-    )
-  ) {
-    return; // Skip these warnings
-  }
-  // Log all other warnings normally
-  originalConsoleWarn.apply(console, args);
-};
+// Suppress any remaining framework warnings
+LogBox.ignoreAllLogs(true);
 
 // registerRootComponent calls AppRegistry.registerComponent('main', () => App);
 // It also ensures that whether you load the app in Expo Go or in a native build,

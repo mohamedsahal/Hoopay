@@ -6,11 +6,55 @@
 // Initialize polyfill immediately
 const initializeReactNativePolyfill = () => {
   try {
+    // Silence specific noisy warnings emitted during defineProperty overrides
+    if (typeof console !== 'undefined') {
+      const originalWarn = console.warn;
+      console.warn = (...args) => {
+        const msg = args[0];
+        if (typeof msg === 'string' && msg.includes('Skipping defineProperty for non-configurable property: prototype')) {
+          return;
+        }
+        return originalWarn(...args);
+      };
+    }
+    // Fix for hasOwnProperty error in React Native 0.79+ with Hermes
+    if (typeof Object.prototype.hasOwnProperty === 'undefined') {
+      Object.prototype.hasOwnProperty = function(prop) {
+        return Object.prototype.hasOwnProperty.call(this, prop);
+      };
+    }
+
+    // Fix for objects that don't have hasOwnProperty method
+    const originalHasOwnProperty = Object.prototype.hasOwnProperty;
+    Object.prototype.hasOwnProperty = function(prop) {
+      try {
+        return originalHasOwnProperty.call(this, prop);
+      } catch (error) {
+        // Fallback for objects without hasOwnProperty
+        return this[prop] !== undefined;
+      }
+    };
+
+    // Global fix for hasOwnProperty calls on any object
+    const originalHasOwnPropertyCall = Function.prototype.call;
+    Function.prototype.call = function(thisArg, ...args) {
+      if (this === Object.prototype.hasOwnProperty && thisArg && typeof thisArg === 'object') {
+        try {
+          return originalHasOwnPropertyCall.apply(this, [thisArg, ...args]);
+        } catch (error) {
+          // If hasOwnProperty fails, check if property exists directly
+          const prop = args[0];
+          return thisArg[prop] !== undefined;
+        }
+      }
+      return originalHasOwnPropertyCall.apply(this, [thisArg, ...args]);
+    };
+
     // Fix for VirtualizedList property descriptor error
     const originalDefineProperty = Object.defineProperty;
     Object.defineProperty = function(obj, prop, descriptor) {
       // Skip if property is already defined and not configurable
-      if (obj && prop && obj.hasOwnProperty(prop)) {
+      if (obj && prop && obj.hasOwnProperty && obj.hasOwnProperty(prop)) {
         const existingDescriptor = Object.getOwnPropertyDescriptor(obj, prop);
         if (existingDescriptor && !existingDescriptor.configurable) {
           console.warn(`Skipping defineProperty for non-configurable property: ${prop}`);
@@ -141,7 +185,7 @@ const initializeReactNativePolyfill = () => {
       }
     }
 
-    console.log('React Native compatibility polyfill initialized successfully');
+    // React Native compatibility polyfill initialized successfully
   } catch (error) {
     console.error('Failed to initialize React Native polyfill:', error);
   }

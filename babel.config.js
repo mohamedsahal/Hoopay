@@ -1,29 +1,17 @@
 module.exports = function (api) {
   api.cache(true);
+  const plugins = [
+    // Reanimated v4 uses worklets plugin
+    'react-native-worklets/plugin',
+  ];
+
+  if (process.env.NODE_ENV === 'production') {
+    // Strip console.* in production except errors
+    plugins.push(['transform-remove-console', { exclude: ['error'] }]);
+  }
+
   return {
-    presets: [
-      'babel-preset-expo',
-    ],
-    plugins: [
-      [
-        '@babel/plugin-transform-class-properties',
-        {
-          loose: true,
-        },
-      ],
-      [
-        '@babel/plugin-transform-private-methods',
-        {
-          loose: true,
-        },
-      ],
-      [
-        '@babel/plugin-transform-private-property-in-object',
-        {
-          loose: true,
-        },
-      ],
-      'react-native-reanimated/plugin', // This must be listed last
-    ],
+    presets: ['babel-preset-expo'],
+    plugins,
   };
-}; 
+};

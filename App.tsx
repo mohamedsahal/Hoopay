@@ -365,13 +365,13 @@ function RootNavigator() {
             }}
           />
           
-          {/* Withdraw Screen - Modal Presentation */}
+          {/* Withdraw Screen - Regular Stack Presentation */}
           <Stack.Screen 
             name="Withdraw" 
             component={WithdrawScreen}
             options={{
-              presentation: 'modal',
               gestureEnabled: true,
+              animation: 'slide_from_right',
             }}
           />
           

@@ -3,9 +3,7 @@ import { ENDPOINTS, BASE_URL } from '../config/apiConfig';
 
 class KycService {
   constructor() {
-    // Debug logging to check ENDPOINTS availability
-    console.log('KycService constructor - ENDPOINTS:', ENDPOINTS);
-    console.log('KycService constructor - ENDPOINTS.KYC:', ENDPOINTS?.KYC);
+    // KycService initialized silently
     
     // Use BASE_URL from config (matches working community uploads)
     this.baseURL = BASE_URL;

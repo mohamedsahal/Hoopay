@@ -14,7 +14,7 @@
       "android",
       "web"
     ],
-    "sdkVersion": "51.0.0",
+    "sdkVersion": "54.0.0",
     "splash": {
       "image": "./assets/splashicon.png",
       "resizeMode": "contain",
@@ -25,7 +25,6 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.hoopay.wallet",
       "googleServicesFile": "./GoogleService-Info.plist",
-      "deploymentTarget": "15",
       "infoPlist": {
         "CFBundleName": "Hoopay Wallet",
         "CFBundleDisplayName": "Hoopay Wallet",
@@ -43,9 +42,6 @@
       "package": "com.exaliye.HoopayNew",
       "googleServicesFile": "./google-services.json",
       "versionCode": 28,
-      "compileSdkVersion": 35,
-      "targetSdkVersion": 35,
-      "minSdkVersion": 21,
       "permissions": [
         "CAMERA",
         "INTERNET",
@@ -73,7 +69,8 @@
           "microphonePermission": false,
           "mediaLibraryPermission": false
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "extra": {
       "eas": {

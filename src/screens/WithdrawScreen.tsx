@@ -27,7 +27,7 @@ import Colors from '../constants/Colors';
 import api from '../services/api';
 import kycService from '../services/kycService';
 import { Loading } from '../components/Loading';
-import { StackNavigationProp } from '@react-navigation/stack';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
@@ -60,7 +60,7 @@ type RootStackParamList = {
   WithdrawHistory: undefined;
 };
 
-type WithdrawScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Withdraw'>;
+type WithdrawScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Withdraw'>;
 type WithdrawScreenRouteProp = RouteProp<RootStackParamList, 'Withdraw'>;
 
 interface Props {
@@ -141,7 +141,7 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
     isDarkMode = false;
   }
   
-  const receiptRef = useRef<any>();
+  const receiptRef = useRef<ViewShot>(null);
   
   // Remove custom toast - using global NotificationToast instead
   const [step, setStep] = useState<Step>('info');
@@ -156,6 +156,37 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
   const [withdrawalResult, setWithdrawalResult] = useState<WithdrawalResult | null>(null);
   const [kycStatus, setKycStatus] = useState<any>(null);
   const [kycLimits, setKycLimits] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Reset form function
+  const resetWithdrawalForm = () => {
+    setStep('info');
+    setSelectedAccount(null);
+    setAmount('');
+    setFeeInfo(null);
+    setWithdrawalResult(null);
+    setIsSubmitting(false);
+    setIsCapturing(false);
+    setError(null);
+  };
+
+  // Simple state reset on mount - only reset if not already in info step
+  React.useEffect(() => {
+    if (step !== 'info') {
+      // Resetting withdrawal screen state on mount
+      resetWithdrawalForm();
+    }
+  }, []); // Only run on mount
+
+ 
+
+  // Cleanup effect for iOS - reset state when component unmounts
+  React.useEffect(() => {
+    return () => {
+      // Cleanup function to reset state on unmount
+      resetWithdrawalForm();
+    };
+  }, []);
 
   useEffect(() => {
     loadWithdrawalInfo();
@@ -183,21 +214,21 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
               }
             } : null);
             
-            console.log('Withdrawal status updated:', newStatus);
+            // Withdrawal status updated
             
             // Refresh notifications when status changes
             try {
               await refreshNotifications();
             } catch (error) {
-              console.log('Failed to refresh notifications:', error);
+              // Failed to refresh notifications
             }
             
             // Don't show custom toasts for status changes - let the global NotificationToast handle backend notifications
             // Only log for debugging
-            console.log(`Withdrawal status changed from ${oldStatus} to ${newStatus}`);
+            // Withdrawal status changed
           }
         } catch (error) {
-          console.log('Status check failed:', error);
+          // Status check failed
         }
       }, 10000); // Check every 10 seconds
     }
@@ -215,7 +246,7 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
     
     try {
       const response = await api.get('/mobile/withdrawals/info');
-      console.log('Withdrawal info loaded:', response.data);
+      // Withdrawal info loaded
       setWithdrawalInfo(response.data.data);
     } catch (error) {
       console.error('Error loading withdrawal info:', error);
@@ -277,23 +308,38 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
-  const handleAccountSelect = async (account: Account): Promise<void> => {
+  const handleAccountSelect = (account: Account): void => {
+    // handleAccountSelect called
     setSelectedAccount(account);
-    setStep('amount');
+    // Use setTimeout for iOS to ensure state updates are processed correctly
+    if (Platform.OS === 'ios') {
+      setTimeout(() => setStep('amount'), 0);
+    } else {
+      setStep('amount');
+    }
   };
 
-  const handleAmountChange = async (value: string): Promise<void> => {
-    setAmount(value);
-    
-    if (value && selectedAccount && parseFloat(value) > 0) {
-      try {
-        const fee = await calculateFee(selectedAccount.id, value);
-        setFeeInfo(fee);
-      } catch (error) {
+  const handleAmountChange = (value: string): void => {
+    // Only allow numbers and one decimal point
+    const filtered = value.replace(/[^0-9.]/g, '');
+    const parts = filtered.split('.');
+    if (parts.length <= 2) {
+      setAmount(filtered);
+      
+      // Calculate fee asynchronously without blocking UI
+      if (filtered && selectedAccount && parseFloat(filtered) > 0) {
+        // Use setTimeout to make this non-blocking
+        setTimeout(async () => {
+          try {
+            const fee = await calculateFee(selectedAccount.id, filtered);
+            setFeeInfo(fee);
+          } catch (error) {
+            setFeeInfo(null);
+          }
+        }, 0);
+      } else {
         setFeeInfo(null);
       }
-    } else {
-      setFeeInfo(null);
     }
   };
 
@@ -377,7 +423,7 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
         description: `Withdrawal to ${selectedAccount?.wallet_type?.name || 'Account'}`
       });
 
-      console.log('Withdrawal completed:', response.data);
+      // Withdrawal completed
       setWithdrawalResult(response.data.data);
       
       setLoadingMessage('Withdrawal completed! Updating balance...');
@@ -386,7 +432,7 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
       try {
         await refreshNotifications();
       } catch (error) {
-        console.log('Failed to refresh notifications after withdrawal:', error);
+        // Failed to refresh notifications after withdrawal
       }
       
       // Update user balance with the new balance from the API response
@@ -399,7 +445,7 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
             total_balance: response.data.data.new_wallet_balance
           }
         };
-        console.log('Updating user balance to:', response.data.data.new_wallet_balance);
+        // Updating user balance
         await updateUser(updatedUser);
       }
       
@@ -424,8 +470,11 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
       setIsCapturing(true);
       
       // Capture the receipt view as image
+      if (!receiptRef.current || !receiptRef.current.capture) {
+        throw new Error('Receipt ref not available');
+      }
       const uri = await receiptRef.current.capture();
-      console.log('Receipt captured:', uri);
+      // Receipt captured
       
       // Check if sharing is available
       const isAvailable = await Sharing.isAvailableAsync();
@@ -460,7 +509,7 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
       if (errorMessage.includes('User did not share') || 
           errorMessage.includes('cancelled') || 
           errorMessage.includes('dismiss')) {
-        console.log('User cancelled sharing');
+        // User cancelled sharing
         return;
       }
       
@@ -514,7 +563,14 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
         borderBottomColor: colors.border,
         paddingTop: Math.max(insets.top, 10) + 10
       }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => {
+          // Use navigation.goBack() for first screen, reset for others
+          if (step === 'info') {
+            navigation.goBack();
+          } else {
+            setStep('info');
+          }
+        }} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.primary} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Withdraw Funds</Text>
@@ -581,7 +637,15 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
         {withdrawalInfo?.has_accounts ? (
           <TouchableOpacity
             style={[styles.continueButton, { backgroundColor: colors.primary, marginBottom: Math.max(insets.bottom, 20) }]}
-            onPress={() => setStep('select')}
+            onPress={() => {
+              // Start Withdrawal pressed
+              // Use setTimeout for iOS to ensure state updates are processed correctly
+              if (Platform.OS === 'ios') {
+                setTimeout(() => setStep('select'), 0);
+              } else {
+                setStep('select');
+              }
+            }}
           >
             <Text style={styles.continueButtonText}>Start Withdrawal</Text>
           </TouchableOpacity>
@@ -630,24 +694,40 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
         backgroundColor={colors.background}
         translucent={false}
       />
-      <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => setStep('info')} style={styles.backButton}>
+      <View style={[styles.header, { 
+        backgroundColor: colors.background, 
+        borderBottomColor: colors.border,
+        paddingTop: Math.max(insets.top, 10) + 10
+      }]}>
+        <TouchableOpacity onPress={() => {
+          // Back to info pressed
+          // Use setTimeout for iOS to ensure state updates are processed correctly
+          if (Platform.OS === 'ios') {
+            setTimeout(() => setStep('info'), 0);
+          } else {
+            setStep('info');
+          }
+        }} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.primary} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Select Account</Text>
         <View style={styles.placeholder} />
       </View>
       
-      <View style={[styles.content, { backgroundColor: colors.background }]}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Choose Withdrawal Account</Text>
+      <ScrollView 
+        style={[styles.content, { backgroundColor: colors.background }]} 
+        contentContainerStyle={[styles.contentContainer, { paddingBottom: Math.max(insets.bottom, 20) }]}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 16 }]}>Choose Withdrawal Account</Text>
         
-        <FlatList
-          data={withdrawalInfo?.accounts || []}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
+        {withdrawalInfo?.accounts && withdrawalInfo.accounts.length > 0 ? (
+          withdrawalInfo.accounts.map((item) => (
             <TouchableOpacity
+              key={item.id.toString()}
               style={[styles.accountItem, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
               onPress={() => handleAccountSelect(item)}
+              activeOpacity={0.7}
             >
               <View style={styles.accountInfo}>
                 <View style={[styles.accountIcon, { backgroundColor: `${colors.primary}20` }]}>
@@ -669,10 +749,17 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
               </View>
               <Ionicons name="chevron-forward" size={20} color={colors.secondary} />
             </TouchableOpacity>
-          )}
-          showsVerticalScrollIndicator={false}
-        />
-      </View>
+          ))
+        ) : (
+          <View style={[styles.noAccountsCard, { backgroundColor: colors.cardBackground }]}>
+            <Ionicons name="card-outline" size={48} color={colors.error} />
+            <Text style={[styles.noAccountsTitle, { color: colors.text }]}>No Accounts Available</Text>
+            <Text style={[styles.noAccountsText, { color: colors.textSecondary }]}>
+              No withdrawal accounts found. Please contact support to add an account.
+            </Text>
+          </View>
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 
@@ -688,19 +775,28 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
         borderBottomColor: colors.border,
         paddingTop: Math.max(insets.top, 10) + 10
       }]}>
-        <TouchableOpacity onPress={() => setStep('select')} style={styles.backButton}>
+        <TouchableOpacity onPress={() => {
+          // Back to select pressed
+          // Use setTimeout for iOS to ensure state updates are processed correctly
+          if (Platform.OS === 'ios') {
+            setTimeout(() => setStep('select'), 0);
+          } else {
+            setStep('select');
+          }
+        }} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.primary} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Enter Amount</Text>
         <View style={styles.placeholder} />
       </View>
 
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <ScrollView 
-          style={[styles.content, { backgroundColor: colors.background }]} 
-          contentContainerStyle={[styles.contentContainer, { paddingBottom: Math.max(insets.bottom, 20) }]}
-          showsVerticalScrollIndicator={false}
-        >
+      <ScrollView 
+        style={[styles.content, { backgroundColor: colors.background }]} 
+        contentContainerStyle={[styles.contentContainer, { paddingBottom: Math.max(insets.bottom, 20) }]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
           <View style={[styles.selectedAccountCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
             <View style={[styles.accountIcon, { backgroundColor: `${colors.primary}20` }]}>
               <Ionicons 
@@ -726,9 +822,11 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
                 placeholder="0.00"
                 keyboardType="numeric"
                 returnKeyType="done"
-                onSubmitEditing={Keyboard.dismiss}
+                onSubmitEditing={() => Keyboard.dismiss()}
                 autoFocus
                 placeholderTextColor={colors.placeholder}
+                maxLength={10}
+                selectTextOnFocus
               />
             </View>
             
@@ -738,9 +836,11 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
               </Text>
               <TouchableOpacity
                 onPress={() => {
-                  handleAmountChange(withdrawalInfo?.wallet_balance?.toString() || '0');
-                  Keyboard.dismiss(); // Dismiss keyboard when MAX is pressed
+                  const maxAmount = withdrawalInfo?.wallet_balance?.toString() || '0';
+                  handleAmountChange(maxAmount);
+                  Keyboard.dismiss();
                 }}
+                activeOpacity={0.7}
               >
                 <Text style={[styles.maxButton, { color: colors.primary }]}>MAX</Text>
               </TouchableOpacity>
@@ -784,11 +884,11 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
             ]}
             onPress={handleContinueToConfirm}
             disabled={!amount || !feeInfo}
+            activeOpacity={0.8}
           >
             <Text style={styles.continueButtonText}>Continue</Text>
           </TouchableOpacity>
         </ScrollView>
-      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 
@@ -804,7 +904,15 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
         borderBottomColor: colors.border,
         paddingTop: Math.max(insets.top, 10) + 10
       }]}>
-        <TouchableOpacity onPress={() => setStep('amount')} style={styles.backButton}>
+        <TouchableOpacity onPress={() => {
+          // Back to amount pressed
+          // Use setTimeout for iOS to ensure state updates are processed correctly
+          if (Platform.OS === 'ios') {
+            setTimeout(() => setStep('amount'), 0);
+          } else {
+            setStep('amount');
+          }
+        }} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.primary} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Confirm Withdrawal</Text>
@@ -943,7 +1051,13 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
           
           <TouchableOpacity
             style={[styles.homeButton, styles.buttonFlex, { borderColor: colors.border }]}
-            onPress={() => navigation.navigate('Home')}
+            onPress={() => {
+              // Navigate to main home screen with reset (like DepositScreen)
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Main' as never }],
+              });
+            }}
           >
             <MaterialIcons name="home" size={20} color={colors.primary} />
             <Text style={[styles.homeButtonText, { color: colors.primary }]}>Go to Home</Text>
@@ -1008,6 +1122,7 @@ const WithdrawScreen: React.FC<Props> = ({ navigation }) => {
   }
 
   const renderCurrentStep = () => {
+    // WithdrawScreen renderCurrentStep
     switch (step) {
       case 'info':
         return renderWithdrawalInfo();

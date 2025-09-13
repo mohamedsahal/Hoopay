@@ -4,10 +4,7 @@ const PROD_API_URL = 'https://hoopaywallet.com'; // Production API URL
 export const API_URL = PROD_API_URL;
 export const BASE_URL = `${API_URL}/api`;
 
-console.log('=== API CONFIG TS LOADED ===');
-console.log('__DEV__:', __DEV__);
-console.log('API_URL:', API_URL);
-console.log('BASE_URL:', BASE_URL);
+// API Config loaded silently
 
 export const ENDPOINTS = {
   AUTH: {
@@ -58,10 +55,7 @@ export const getHeaders = (token?: string) => ({
   'Authorization': token ? `Bearer ${token}` : '',
 });
 
-console.log('=== ENDPOINTS TS OBJECT ===');
-console.log('ENDPOINTS defined:', typeof ENDPOINTS);
-console.log('ENDPOINTS.DISCUSSIONS:', ENDPOINTS?.DISCUSSIONS);
-console.log('ENDPOINTS.DISCUSSIONS.FEED:', ENDPOINTS?.DISCUSSIONS?.FEED);
+// ENDPOINTS object defined silently
 
 export default {
   API_URL,
